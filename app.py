@@ -9,7 +9,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect
-from wtforms import StringField, DecimalField, DateField, TimeField, SelectField, EmailField, PasswordField
+from wtforms import StringField, DecimalField, DateField, TimeField, SelectField, EmailField, PasswordField, TextAreaField
 from wtforms.validators import DataRequired, Email, Length, NumberRange
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -56,6 +56,8 @@ if not app.debug:
 
 # Models
 class User(UserMixin, db.Model):
+    __tablename__ = 'user'
+    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
@@ -65,6 +67,7 @@ class User(UserMixin, db.Model):
     hourly_rate = db.Column(db.Numeric(10, 2), default=50.00)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     lessons = db.relationship('Lesson', backref='coach', lazy=True, cascade='all, delete-orphan')
+    students = db.relationship('Student', backref='coach', lazy=True, cascade='all, delete-orphan')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -73,6 +76,8 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 class Student(db.Model):
+    __tablename__ = 'student'
+    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
     email = db.Column(db.String(120), nullable=False, index=True)
@@ -82,6 +87,8 @@ class Student(db.Model):
     lessons = db.relationship('Lesson', backref='student', lazy=True)
 
 class Lesson(db.Model):
+    __tablename__ = 'lesson'
+    
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False, index=True)
     time = db.Column(db.Time, nullable=False)
@@ -138,7 +145,7 @@ class LessonForm(FlaskForm):
         ('group', 'Group'),
         ('intensive', 'Intensive')
     ], validators=[DataRequired()])
-    notes = StringField('Notes', validators=[Length(max=500)])
+    notes = TextAreaField('Notes', validators=[Length(max=500)])
 
 # Login manager
 @login_manager.user_loader
@@ -156,16 +163,20 @@ def generate_invoice_number():
 
 def update_overdue_lessons():
     """Update lessons status to overdue"""
-    overdue_lessons = Lesson.query.filter(
-        Lesson.status == 'pending',
-        Lesson.date < datetime.now().date() - timedelta(days=7)
-    ).all()
-    
-    for lesson in overdue_lessons:
-        lesson.status = 'overdue'
-    
-    if overdue_lessons:
-        db.session.commit()
+    try:
+        overdue_lessons = Lesson.query.filter(
+            Lesson.status == 'pending',
+            Lesson.date < datetime.now().date() - timedelta(days=7)
+        ).all()
+        
+        for lesson in overdue_lessons:
+            lesson.status = 'overdue'
+        
+        if overdue_lessons:
+            db.session.commit()
+    except Exception as e:
+        app.logger.error(f'Error updating overdue lessons: {e}')
+        db.session.rollback()
 
 # Routes
 @app.route('/')
@@ -446,6 +457,50 @@ def create_admin():
     db.session.add(user)
     db.session.commit()
     print(f'Admin user {username} created successfully.')
+
+@app.route('/students')
+@login_required
+def students():
+    """View all students for the current coach"""
+    students = Student.query.filter_by(coach_id=current_user.id)\
+                           .order_by(Student.name.asc()).all()
+    
+    # Get lesson counts for each student
+    students_data = []
+    for student in students:
+        lesson_count = Lesson.query.filter_by(student_id=student.id).count()
+        paid_count = Lesson.query.filter_by(student_id=student.id, status='paid').count()
+        pending_count = Lesson.query.filter_by(student_id=student.id, status='pending').count()
+        overdue_count = Lesson.query.filter_by(student_id=student.id, status='overdue').count()
+        
+        total_revenue = sum(l.total_amount for l in student.lessons if l.status == 'paid')
+        
+        students_data.append({
+            'student': student,
+            'total_lessons': lesson_count,
+            'paid_lessons': paid_count,
+            'pending_lessons': pending_count,
+            'overdue_lessons': overdue_count,
+            'total_revenue': total_revenue
+        })
+    
+    return render_template('students.html', students_data=students_data)
+
+@app.route('/api/students')
+@login_required
+def api_students():
+    """API endpoint for students data"""
+    students = Student.query.filter_by(coach_id=current_user.id)\
+                           .order_by(Student.name.asc()).all()
+    
+    return jsonify([{
+        'id': student.id,
+        'name': student.name,
+        'email': student.email,
+        'phone': student.phone or '',
+        'created_at': student.created_at.isoformat(),
+        'lesson_count': len(student.lessons)
+    } for student in students])
 
 if __name__ == '__main__':
     with app.app_context():

@@ -1,4 +1,3 @@
-# templates/dashboard.html
 {% extends "base.html" %}
 
 {% block content %}
@@ -33,25 +32,87 @@
             <form method="POST" action="{{ url_for('add_lesson') }}" class="lesson-form">
                 {{ form.hidden_tag() }}
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        {{ form.rate.label(class="form-label") }}
-                        {{ form.rate(class="form-input") }}
+                <!-- Student Information Section -->
+                <fieldset style="border: 2px solid #e2e8f0; padding: 1rem; margin-bottom: 1.5rem; border-radius: 8px;">
+                    <legend style="padding: 0 0.5rem; font-weight: 600; color: #4a5568;">Student Information</legend>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            {{ form.student_name.label(class="form-label") }}
+                            {{ form.student_name(class="form-input", placeholder="Enter student's full name") }}
+                            {% if form.student_name.errors %}
+                                <div class="form-error">{{ form.student_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.student_email.label(class="form-label") }}
+                            {{ form.student_email(class="form-input", placeholder="student@example.com") }}
+                            {% if form.student_email.errors %}
+                                <div class="form-error">{{ form.student_email.errors[0] }}</div>
+                            {% endif %}
+                        </div>
                     </div>
-                </div>
+                </fieldset>
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        {{ form.lesson_type.label(class="form-label") }}
-                        {{ form.lesson_type(class="form-input") }}
+                <!-- Lesson Details Section -->
+                <fieldset style="border: 2px solid #e2e8f0; padding: 1rem; margin-bottom: 1.5rem; border-radius: 8px;">
+                    <legend style="padding: 0 0.5rem; font-weight: 600; color: #4a5568;">Lesson Details</legend>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            {{ form.date.label(class="form-label") }}
+                            {{ form.date(class="form-input", id="date") }}
+                            {% if form.date.errors %}
+                                <div class="form-error">{{ form.date.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.time.label(class="form-label") }}
+                            {{ form.time(class="form-input") }}
+                            {% if form.time.errors %}
+                                <div class="form-error">{{ form.time.errors[0] }}</div>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div class="form-group">
-                        {{ form.notes.label(class="form-label") }}
-                        {{ form.notes(class="form-input") }}
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            {{ form.duration.label(class="form-label") }}
+                            {{ form.duration(class="form-select") }}
+                            {% if form.duration.errors %}
+                                <div class="form-error">{{ form.duration.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.lesson_type.label(class="form-label") }}
+                            {{ form.lesson_type(class="form-select") }}
+                            {% if form.lesson_type.errors %}
+                                <div class="form-error">{{ form.lesson_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
                     </div>
-                </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            {{ form.rate.label(class="form-label") }}
+                            {{ form.rate(class="form-input", step="0.01", min="0") }}
+                            {% if form.rate.errors %}
+                                <div class="form-error">{{ form.rate.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.notes.label(class="form-label") }}
+                            {{ form.notes(class="form-input", placeholder="Optional notes about the lesson") }}
+                            {% if form.notes.errors %}
+                                <div class="form-error">{{ form.notes.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </fieldset>
                 
-                <button type="submit" class="btn btn-primary">Add Lesson</button>
+                <div style="text-align: center;">
+                    <button type="submit" class="btn btn-primary btn-lg">Add Lesson</button>
+                </div>
             </form>
         </div>
         
@@ -69,20 +130,23 @@
                 </div>
             </div>
             <div id="lessonsList" class="lessons-list">
-                <!-- Lessons will be loaded here via JavaScript -->
+                <div class="empty-state">Loading lessons...</div>
             </div>
         </div>
     </div>
 </div>
 
-<div id="invoiceModal" class="modal">
+<!-- Students Management Modal -->
+<div id="studentsModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Invoice Preview</h3>
-            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <h3>Manage Students</h3>
+            <button class="modal-close" onclick="closeModal('studentsModal')">&times;</button>
         </div>
-        <div class="modal-body" id="invoiceContent">
-            <!-- Invoice content will be loaded here -->
+        <div class="modal-body" id="studentsContent">
+            <div id="studentsList">
+                <!-- Students will be loaded here -->
+            </div>
         </div>
     </div>
 </div>
@@ -101,7 +165,36 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Filter change handler
     document.getElementById('statusFilter').addEventListener('change', loadLessons);
+    
+    // Form validation
+    const form = document.querySelector('.lesson-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const studentName = form.querySelector('input[name="student_name"]').value.trim();
+            const studentEmail = form.querySelector('input[name="student_email"]').value.trim();
+            const date = form.querySelector('input[name="date"]').value;
+            const time = form.querySelector('input[name="time"]').value;
+            const rate = form.querySelector('input[name="rate"]').value;
+            
+            if (!studentName || !studentEmail || !date || !time || !rate) {
+                e.preventDefault();
+                showNotification('Please fill in all required fields', 'error');
+                return false;
+            }
+            
+            if (!isValidEmail(studentEmail)) {
+                e.preventDefault();
+                showNotification('Please enter a valid email address', 'error');
+                return false;
+            }
+        });
+    }
 });
+
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
 
 function loadLessons() {
     const filter = document.getElementById('statusFilter').value;
@@ -123,7 +216,7 @@ function displayLessons(lessons) {
     const container = document.getElementById('lessonsList');
     
     if (lessons.length === 0) {
-        container.innerHTML = '<div class="empty-state">No lessons found.</div>';
+        container.innerHTML = '<div class="empty-state">No lessons found. Add your first lesson above!</div>';
         return;
     }
     
@@ -131,7 +224,7 @@ function displayLessons(lessons) {
         <div class="lesson-item ${lesson.status}">
             <div class="lesson-header">
                 <div class="lesson-student">${lesson.student_name}</div>
-                <div class="lesson-status status-${lesson.status}">${lesson.status}</div>
+                <div class="lesson-status status-${lesson.status}">${lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1)}</div>
             </div>
             <div class="lesson-details">
                 📅 ${formatDate(lesson.date)} at ${lesson.time} | 
@@ -140,14 +233,15 @@ function displayLessons(lessons) {
                 💰 £${lesson.total_amount.toFixed(2)}
                 <br>✉️ ${lesson.student_email}
                 ${lesson.notes ? `<br>📝 ${lesson.notes}` : ''}
+                <br><small>📄 Invoice: ${lesson.invoice_number}</small>
             </div>
             <div class="lesson-actions">
-                <button class="btn btn-sm" onclick="viewInvoice(${lesson.id})">View Invoice</button>
+                <button class="btn btn-sm" onclick="viewInvoice(${lesson.id})">📄 View Invoice</button>
                 ${lesson.status === 'pending' ? 
-                    `<button class="btn btn-sm btn-success" onclick="markAsPaid(${lesson.id})">Mark Paid</button>` : ''}
+                    `<button class="btn btn-sm btn-success" onclick="markAsPaid(${lesson.id})">✅ Mark Paid</button>` : ''}
                 ${lesson.status === 'pending' || lesson.status === 'overdue' ? 
-                    `<button class="btn btn-sm btn-warning" onclick="sendReminder(${lesson.id})">Send Reminder</button>` : ''}
-                <button class="btn btn-sm btn-danger" onclick="deleteLesson(${lesson.id})">Delete</button>
+                    `<button class="btn btn-sm btn-warning" onclick="sendReminder(${lesson.id})">📧 Send Reminder</button>` : ''}
+                <button class="btn btn-sm btn-danger" onclick="deleteLesson(${lesson.id})">🗑️ Delete</button>
             </div>
         </div>
     `).join('');
@@ -184,7 +278,7 @@ function markAsPaid(lessonId) {
 }
 
 function deleteLesson(lessonId) {
-    if (!confirm('Are you sure you want to delete this lesson?')) return;
+    if (!confirm('Are you sure you want to delete this lesson? This cannot be undone.')) return;
     
     fetch(`/api/lesson/${lessonId}/delete`, {
         method: 'DELETE',
@@ -230,6 +324,8 @@ function sendReminder(lessonId) {
 }
 
 function sendBulkReminders() {
+    if (!confirm('Send payment reminders to all students with unpaid lessons?')) return;
+    
     fetch('/api/send_bulk_reminders', {
         method: 'POST',
         headers: {
@@ -255,8 +351,11 @@ function viewInvoice(lessonId) {
 }
 
 function updateStats() {
-    // Reload the page to update stats - in a real app you'd update via API
-    window.location.reload();
+    // In a production app, you'd update stats via API
+    // For now, reload to get fresh stats
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
 }
 </script>
 {% endblock %}

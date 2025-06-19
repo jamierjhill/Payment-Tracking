@@ -1,0 +1,168 @@
+# templates/lessons.html
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1>All Lessons</h1>
+        <p>Complete lesson history and management</p>
+    </div>
+    
+    <div class="panel">
+        <div class="panel-header">
+            <h2>Lessons</h2>
+            <div class="panel-actions">
+                <select onchange="filterLessons(this.value)" class="form-select">
+                    <option value="all" {{ 'selected' if status_filter == 'all' else '' }}>All Lessons</option>
+                    <option value="pending" {{ 'selected' if status_filter == 'pending' else '' }}>Pending</option>
+                    <option value="paid" {{ 'selected' if status_filter == 'paid' else '' }}>Paid</option>
+                    <option value="overdue" {{ 'selected' if status_filter == 'overdue' else '' }}>Overdue</option>
+                </select>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Add New Lesson</a>
+            </div>
+        </div>
+        
+        {% if lessons.items %}
+            <div class="lessons-list">
+                {% for lesson in lessons.items %}
+                    <div class="lesson-item {{ lesson.status }}">
+                        <div class="lesson-header">
+                            <div class="lesson-student">{{ lesson.student.name }}</div>
+                            <div class="lesson-status status-{{ lesson.status }}">{{ lesson.status }}</div>
+                        </div>
+                        <div class="lesson-details">
+                            📅 {{ lesson.date.strftime('%d/%m/%Y') }} at {{ lesson.time.strftime('%H:%M') }} | 
+                            ⏱️ {{ lesson.duration }}h | 
+                            🏷️ {{ lesson.lesson_type }} | 
+                            💰 £{{ "%.2f"|format(lesson.total_amount) }}
+                            <br>✉️ {{ lesson.student.email or 'No email provided' }}
+                            {% if lesson.student.phone %}
+                                <br>📱 {{ lesson.student.phone }}
+                            {% endif %}
+                            {% if lesson.notes %}
+                                <br>📝 {{ lesson.notes }}
+                            {% endif %}
+                        </div>
+                        <div class="lesson-actions">
+                            <a href="{{ url_for('view_invoice', lesson_id=lesson.id) }}" class="btn btn-sm" target="_blank">View Invoice</a>
+                            {% if lesson.status in ['pending', 'overdue'] %}
+                                <button class="btn btn-sm btn-success" onclick="markAsPaid({{ lesson.id }})">Mark Paid</button>
+                            {% endif %}
+                            {% if lesson.status in ['pending', 'overdue'] and lesson.student.email %}
+                                <button class="btn btn-sm btn-warning" onclick="sendReminder({{ lesson.id }})">Send Reminder</button>
+                            {% endif %}
+                            <button class="btn btn-sm btn-danger" onclick="deleteLesson({{ lesson.id }})">Delete</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Pagination -->
+            {% if lessons.pages > 1 %}
+                <div class="pagination">
+                    {% if lessons.has_prev %}
+                        <a href="{{ url_for('lessons', page=lessons.prev_num, status=status_filter) }}" class="btn btn-sm">Previous</a>
+                    {% endif %}
+                    
+                    {% for page_num in lessons.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != lessons.page %}
+                                <a href="{{ url_for('lessons', page=page_num, status=status_filter) }}" class="btn btn-sm">{{ page_num }}</a>
+                            {% else %}
+                                <span class="btn btn-sm btn-primary">{{ page_num }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span>...</span>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if lessons.has_next %}
+                        <a href="{{ url_for('lessons', page=lessons.next_num, status=status_filter) }}" class="btn btn-sm">Next</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <p>No lessons found{% if status_filter != 'all' %} with status "{{ status_filter }}"{% endif %}.</p>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Add Lesson</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function filterLessons(status) {
+    window.location.href = "{{ url_for('lessons') }}?status=" + status;
+}
+
+function markAsPaid(lessonId) {
+    if (!confirm('Mark this lesson as paid?')) return;
+    
+    fetch(`/api/lesson/${lessonId}/mark_paid`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification(data.error || 'Error updating lesson', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error updating lesson', 'error');
+    });
+}
+
+function deleteLesson(lessonId) {
+    if (!confirm('Are you sure you want to delete this lesson? This action cannot be undone.')) return;
+    
+    fetch(`/api/lesson/${lessonId}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification(data.error || 'Error deleting lesson', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error deleting lesson', 'error');
+    });
+}
+
+function sendReminder(lessonId) {
+    fetch(`/api/send_reminder/${lessonId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.error || 'Error sending reminder', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error sending reminder', 'error');
+    });
+}
+</script>
+{% endblock %}

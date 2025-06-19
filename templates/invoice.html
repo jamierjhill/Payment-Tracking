@@ -9,7 +9,7 @@
             <div class="invoice-number">{{ lesson.invoice_number }}</div>
         </div>
         <div class="invoice-date">
-            <strong>Date:</strong> {{ moment().format('DD/MM/YYYY') if moment else lesson.created_at.strftime('%d/%m/%Y') }}
+            <strong>Date:</strong> {{ lesson.created_at.strftime('%d/%m/%Y') }}
         </div>
     </div>
     
@@ -26,7 +26,12 @@
             <h3>To:</h3>
             <div class="party-details">
                 <strong>{{ lesson.student.name }}</strong><br>
-                <a href="mailto:{{ lesson.student.email }}">{{ lesson.student.email }}</a>
+                {% if lesson.student.email %}
+                    <a href="mailto:{{ lesson.student.email }}">{{ lesson.student.email }}</a><br>
+                {% endif %}
+                {% if lesson.student.phone %}
+                    {{ lesson.student.phone }}
+                {% endif %}
             </div>
         </div>
     </div>
@@ -45,12 +50,34 @@
             <tbody>
                 <tr>
                     <td>
-                        Tennis Lesson - {{ lesson.lesson_type|title }}
+                        {% if lesson.lesson_type == 'stringing' %}
+                            Racquet Stringing Service
+                        {% elif lesson.lesson_type == 'individual' %}
+                            Individual Tennis Lesson
+                        {% elif lesson.lesson_type == 'group' %}
+                            Group Tennis Lesson
+                        {% elif lesson.lesson_type == 'intensive' %}
+                            Intensive Tennis Lesson
+                        {% else %}
+                            Tennis Lesson - {{ lesson.lesson_type|title }}
+                        {% endif %}
                         {% if lesson.notes %}<br><small>{{ lesson.notes }}</small>{% endif %}
                     </td>
                     <td>{{ lesson.date.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ lesson.duration }}h</td>
-                    <td>£{{ "%.2f"|format(lesson.rate) }}/h</td>
+                    <td>
+                        {% if lesson.lesson_type == 'stringing' %}
+                            Service
+                        {% else %}
+                            {{ lesson.duration }}h
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if lesson.lesson_type == 'stringing' %}
+                            £{{ "%.2f"|format(lesson.rate) }}
+                        {% else %}
+                            £{{ "%.2f"|format(lesson.rate) }}/h
+                        {% endif %}
+                    </td>
                     <td><strong>£{{ "%.2f"|format(lesson.total_amount) }}</strong></td>
                 </tr>
             </tbody>
@@ -80,6 +107,36 @@
     <div class="invoice-actions no-print">
         <button class="btn btn-primary" onclick="window.print()">Print Invoice</button>
         <button class="btn btn-secondary" onclick="window.close()">Close</button>
+        {% if lesson.status != 'paid' %}
+            <button class="btn btn-success" onclick="markAsPaidFromInvoice({{ lesson.id }})">Mark as Paid</button>
+        {% endif %}
     </div>
 </div>
+
+<script>
+function markAsPaidFromInvoice(lessonId) {
+    if (!confirm('Mark this lesson as paid?')) return;
+    
+    fetch(`/api/lesson/${lessonId}/mark_paid`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Lesson marked as paid successfully!');
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unable to mark lesson as paid'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating lesson status');
+    });
+}
+</script>
 {% endblock %}

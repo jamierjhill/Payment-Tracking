@@ -1,3 +1,4 @@
+# templates/base.html - Fixed navigation and URL references
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,21 +10,24 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
-    <nav class="navbar" {% if current_user.is_authenticated %}style="display: flex;"{% else %}style="display: none;"{% endif %}>
+    {% if current_user.is_authenticated %}
+    <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <h2>🎾 Tennis Coach Manager</h2>
+                <a href="{{ url_for('dashboard') }}" style="text-decoration: none;">
+                    <h2>🎾 Tennis Coach Manager</h2>
+                </a>
             </div>
             <div class="nav-menu">
                 <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
-                <a href="{{ url_for('students') }}" class="nav-link">My Students</a>
                 <div class="nav-user">
-                    <span>{{ current_user.name if current_user.is_authenticated else '' }}</span>
+                    <span>{{ current_user.name }}</span>
                     <a href="{{ url_for('logout') }}" class="btn btn-sm">Logout</a>
                 </div>
             </div>
         </div>
     </nav>
+    {% endif %}
 
     <main class="main-content">
         {% with messages = get_flashed_messages(with_categories=true) %}

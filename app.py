@@ -1,4 +1,4 @@
-# app.py
+# app.py - Complete with all necessary routes
 import os
 from datetime import datetime, timedelta
 from functools import wraps
@@ -10,7 +10,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect
 from wtforms import StringField, DecimalField, DateField, TimeField, SelectField, EmailField, PasswordField, TextAreaField
-from wtforms.validators import DataRequired, Email, Length, NumberRange
+from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
@@ -56,8 +56,6 @@ if not app.debug:
 
 # Models
 class User(UserMixin, db.Model):
-    __tablename__ = 'user'
-    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
@@ -76,32 +74,26 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 class Student(db.Model):
-    __tablename__ = 'student'
-    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
-    email = db.Column(db.String(120), nullable=False, index=True)
+    email = db.Column(db.String(120), nullable=True, index=True)
     phone = db.Column(db.String(20))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     coach_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     lessons = db.relationship('Lesson', backref='student', lazy=True)
 
 class Lesson(db.Model):
-    __tablename__ = 'lesson'
-    
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False, index=True)
     time = db.Column(db.Time, nullable=False)
-    duration = db.Column(db.Numeric(3, 1), nullable=False)  # in hours
+    duration = db.Column(db.Numeric(3, 1), nullable=False)
     rate = db.Column(db.Numeric(10, 2), nullable=False)
     lesson_type = db.Column(db.String(50), nullable=False)
-    status = db.Column(db.String(20), default='pending', index=True)  # pending, paid, overdue
+    status = db.Column(db.String(20), default='pending', index=True)
     invoice_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     paid_at = db.Column(db.DateTime)
-    
-    # Foreign keys
     coach_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     
@@ -113,7 +105,6 @@ class Lesson(db.Model):
     def is_overdue(self):
         if self.status == 'paid':
             return False
-        # Consider overdue if more than 7 days past lesson date
         return (datetime.now().date() - self.date).days > 7
 
 # Forms
@@ -126,11 +117,12 @@ class RegistrationForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
     name = StringField('Full Name', validators=[DataRequired(), Length(max=100)])
-    academy_name = StringField('Academy Name', validators=[Length(max=200)])
+    academy_name = StringField('Academy Name', validators=[Optional(), Length(max=200)])
 
 class LessonForm(FlaskForm):
     student_name = StringField('Student Name', validators=[DataRequired(), Length(max=100)])
-    student_email = EmailField('Student Email', validators=[DataRequired(), Email()])
+    student_email = EmailField('Student Email', validators=[Optional(), Email()])
+    student_phone = StringField('Student Phone', validators=[Optional(), Length(max=20)])
     date = DateField('Lesson Date', validators=[DataRequired()])
     time = TimeField('Lesson Time', validators=[DataRequired()])
     duration = SelectField('Duration', choices=[
@@ -143,16 +135,34 @@ class LessonForm(FlaskForm):
     lesson_type = SelectField('Lesson Type', choices=[
         ('individual', 'Individual'),
         ('group', 'Group'),
-        ('intensive', 'Intensive')
+        ('intensive', 'Intensive'),
+        ('stringing', 'Racquet Stringing')
     ], validators=[DataRequired()])
-    notes = TextAreaField('Notes', validators=[Length(max=500)])
+    notes = TextAreaField('Notes', validators=[Optional(), Length(max=500)])
+    template = SelectField('Quick Template', choices=[
+        ('', 'Select Template'),
+        ('1hour_individual', '1 Hour Individual Lesson'),
+        ('stringing', 'Racquet Stringing Service')
+    ], validators=[Optional()])
 
-# Login manager
+# Template configurations
+LESSON_TEMPLATES = {
+    '1hour_individual': {
+        'duration': '1.0',
+        'lesson_type': 'individual',
+        'notes': 'Standard 1-hour individual tennis lesson'
+    },
+    'stringing': {
+        'duration': '0.5',
+        'lesson_type': 'stringing',
+        'notes': 'Professional racquet stringing service'
+    }
+}
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Helper functions
 def generate_invoice_number():
     """Generate unique invoice number"""
     import random
@@ -163,20 +173,16 @@ def generate_invoice_number():
 
 def update_overdue_lessons():
     """Update lessons status to overdue"""
-    try:
-        overdue_lessons = Lesson.query.filter(
-            Lesson.status == 'pending',
-            Lesson.date < datetime.now().date() - timedelta(days=7)
-        ).all()
-        
-        for lesson in overdue_lessons:
-            lesson.status = 'overdue'
-        
-        if overdue_lessons:
-            db.session.commit()
-    except Exception as e:
-        app.logger.error(f'Error updating overdue lessons: {e}')
-        db.session.rollback()
+    overdue_lessons = Lesson.query.filter(
+        Lesson.status == 'pending',
+        Lesson.date < datetime.now().date() - timedelta(days=7)
+    ).all()
+    
+    for lesson in overdue_lessons:
+        lesson.status = 'overdue'
+    
+    if overdue_lessons:
+        db.session.commit()
 
 # Routes
 @app.route('/')
@@ -189,7 +195,6 @@ def index():
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        # Check if user already exists
         if User.query.filter_by(username=form.username.data).first():
             flash('Username already exists. Please choose a different one.', 'error')
             return render_template('register.html', form=form)
@@ -198,7 +203,6 @@ def register():
             flash('Email already registered. Please use a different email.', 'error')
             return render_template('register.html', form=form)
         
-        # Create new user
         user = User(
             username=form.username.data,
             email=form.email.data,
@@ -247,7 +251,6 @@ def logout():
 def dashboard():
     update_overdue_lessons()
     
-    # Get dashboard statistics
     lessons = Lesson.query.filter_by(coach_id=current_user.id).all()
     
     stats = {
@@ -257,7 +260,6 @@ def dashboard():
         'total_revenue': sum(l.total_amount for l in lessons if l.status == 'paid')
     }
     
-    # Get recent lessons
     recent_lessons = Lesson.query.filter_by(coach_id=current_user.id)\
                                  .order_by(Lesson.date.desc(), Lesson.time.desc())\
                                  .limit(10).all()
@@ -267,28 +269,63 @@ def dashboard():
     
     return render_template('dashboard.html', stats=stats, lessons=recent_lessons, form=form)
 
+@app.route('/students')
+@login_required
+def students():
+    """Student management page"""
+    page = request.args.get('page', 1, type=int)
+    students = Student.query.filter_by(coach_id=current_user.id)\
+                           .order_by(Student.name)\
+                           .paginate(page=page, per_page=20, error_out=False)
+    
+    return render_template('students.html', students=students)
+
+@app.route('/lessons')
+@login_required
+def lessons():
+    """Lessons management page"""
+    page = request.args.get('page', 1, type=int)
+    status_filter = request.args.get('status', 'all')
+    
+    query = Lesson.query.filter_by(coach_id=current_user.id)
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    
+    lessons = query.order_by(Lesson.date.desc(), Lesson.time.desc())\
+                  .paginate(page=page, per_page=20, error_out=False)
+    
+    return render_template('lessons.html', lessons=lessons, status_filter=status_filter)
+
 @app.route('/add_lesson', methods=['POST'])
 @login_required
 def add_lesson():
     form = LessonForm()
     if form.validate_on_submit():
         try:
-            # Get or create student
-            student = Student.query.filter_by(
-                email=form.student_email.data,
-                coach_id=current_user.id
-            ).first()
+            # Find or create student
+            student = None
+            if form.student_email.data:
+                student = Student.query.filter_by(
+                    email=form.student_email.data,
+                    coach_id=current_user.id
+                ).first()
+            
+            if not student:
+                student = Student.query.filter_by(
+                    name=form.student_name.data,
+                    coach_id=current_user.id
+                ).first()
             
             if not student:
                 student = Student(
                     name=form.student_name.data,
-                    email=form.student_email.data,
+                    email=form.student_email.data if form.student_email.data else None,
+                    phone=form.student_phone.data if form.student_phone.data else None,
                     coach_id=current_user.id
                 )
                 db.session.add(student)
-                db.session.flush()  # Get student ID
+                db.session.flush()
             
-            # Create lesson
             lesson = Lesson(
                 date=form.date.data,
                 time=form.time.data,
@@ -316,13 +353,18 @@ def add_lesson():
     
     return redirect(url_for('dashboard'))
 
+# API Routes
+@app.route('/api/lesson_templates')
+@login_required
+def api_lesson_templates():
+    return jsonify(LESSON_TEMPLATES)
+
 @app.route('/api/lessons')
 @login_required
 def api_lessons():
     status_filter = request.args.get('status', 'all')
     
     query = Lesson.query.filter_by(coach_id=current_user.id)
-    
     if status_filter != 'all':
         query = query.filter_by(status=status_filter)
     
@@ -331,7 +373,8 @@ def api_lessons():
     return jsonify([{
         'id': lesson.id,
         'student_name': lesson.student.name,
-        'student_email': lesson.student.email,
+        'student_email': lesson.student.email or 'No email provided',
+        'student_phone': lesson.student.phone or '',
         'date': lesson.date.isoformat(),
         'time': lesson.time.strftime('%H:%M'),
         'duration': float(lesson.duration),
@@ -340,7 +383,7 @@ def api_lessons():
         'status': lesson.status,
         'invoice_number': lesson.invoice_number,
         'total_amount': lesson.total_amount,
-        'notes': lesson.notes
+        'notes': lesson.notes or ''
     } for lesson in lessons])
 
 @app.route('/api/lesson/<int:lesson_id>/mark_paid', methods=['POST'])
@@ -384,8 +427,9 @@ def send_reminder(lesson_id):
     if not lesson:
         return jsonify({'error': 'Lesson not found'}), 404
     
-    # In a real app, you would send an actual email here
-    # For now, just simulate the action
+    if not lesson.student.email:
+        return jsonify({'error': 'No email address available for this student'}), 400
+    
     app.logger.info(f'Payment reminder sent for lesson {lesson.id} to {lesson.student.email}')
     
     return jsonify({
@@ -396,10 +440,13 @@ def send_reminder(lesson_id):
 @app.route('/api/send_bulk_reminders', methods=['POST'])
 @login_required
 def send_bulk_reminders():
-    unpaid_lessons = Lesson.query.filter_by(coach_id=current_user.id)\
-                                 .filter(Lesson.status.in_(['pending', 'overdue'])).all()
+    unpaid_lessons = Lesson.query.join(Student).filter(
+        Lesson.coach_id == current_user.id,
+        Lesson.status.in_(['pending', 'overdue']),
+        Student.email.isnot(None),
+        Student.email != ''
+    ).all()
     
-    # In a real app, you would send actual emails here
     for lesson in unpaid_lessons:
         app.logger.info(f'Bulk reminder sent for lesson {lesson.id} to {lesson.student.email}')
     
@@ -458,53 +505,8 @@ def create_admin():
     db.session.commit()
     print(f'Admin user {username} created successfully.')
 
-@app.route('/students')
-@login_required
-def students():
-    """View all students for the current coach"""
-    students = Student.query.filter_by(coach_id=current_user.id)\
-                           .order_by(Student.name.asc()).all()
-    
-    # Get lesson counts for each student
-    students_data = []
-    for student in students:
-        lesson_count = Lesson.query.filter_by(student_id=student.id).count()
-        paid_count = Lesson.query.filter_by(student_id=student.id, status='paid').count()
-        pending_count = Lesson.query.filter_by(student_id=student.id, status='pending').count()
-        overdue_count = Lesson.query.filter_by(student_id=student.id, status='overdue').count()
-        
-        total_revenue = sum(l.total_amount for l in student.lessons if l.status == 'paid')
-        
-        students_data.append({
-            'student': student,
-            'total_lessons': lesson_count,
-            'paid_lessons': paid_count,
-            'pending_lessons': pending_count,
-            'overdue_lessons': overdue_count,
-            'total_revenue': total_revenue
-        })
-    
-    return render_template('students.html', students_data=students_data)
-
-@app.route('/api/students')
-@login_required
-def api_students():
-    """API endpoint for students data"""
-    students = Student.query.filter_by(coach_id=current_user.id)\
-                           .order_by(Student.name.asc()).all()
-    
-    return jsonify([{
-        'id': student.id,
-        'name': student.name,
-        'email': student.email,
-        'phone': student.phone or '',
-        'created_at': student.created_at.isoformat(),
-        'lesson_count': len(student.lessons)
-    } for student in students])
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     
-    # Development server settings
     app.run(debug=True, host='127.0.0.1', port=5000)

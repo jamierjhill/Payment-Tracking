@@ -1,306 +1,74 @@
+# templates/students.html
 {% extends "base.html" %}
 
 {% block content %}
 <div class="container">
     <div class="dashboard-header">
-        <h1>My Students</h1>
-        <p>Manage your student database and track their progress</p>
+        <h1>Students</h1>
+        <p>Manage your student information</p>
     </div>
     
     <div class="panel">
         <div class="panel-header">
-            <h2>All Students ({{ students_data|length }})</h2>
+            <h2>All Students</h2>
             <div class="panel-actions">
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Add New Lesson</a>
             </div>
         </div>
         
-        {% if students_data %}
-            <div class="students-grid">
-                {% for data in students_data %}
-                <div class="student-card">
-                    <div class="student-header">
-                        <h3>{{ data.student.name }}</h3>
-                        <span class="student-date">Since {{ data.student.created_at.strftime('%b %Y') }}</span>
-                    </div>
-                    
-                    <div class="student-contact">
-                        <p>📧 {{ data.student.email }}</p>
-                        {% if data.student.phone %}
-                            <p>📞 {{ data.student.phone }}</p>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="student-stats">
-                        <div class="stat-row">
-                            <span>Total Lessons:</span>
-                            <strong>{{ data.total_lessons }}</strong>
+        {% if students.items %}
+            <div class="students-list">
+                {% for student in students.items %}
+                    <div class="lesson-item">
+                        <div class="lesson-header">
+                            <div class="lesson-student">{{ student.name }}</div>
+                            <div class="lesson-status">
+                                {{ student.lessons|length }} lesson{{ 's' if student.lessons|length != 1 else '' }}
+                            </div>
                         </div>
-                        <div class="stat-row">
-                            <span>Paid:</span>
-                            <strong class="text-success">{{ data.paid_lessons }}</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>Pending:</span>
-                            <strong class="text-danger">{{ data.pending_lessons }}</strong>
-                        </div>
-                        {% if data.overdue_lessons > 0 %}
-                        <div class="stat-row">
-                            <span>Overdue:</span>
-                            <strong class="text-warning">{{ data.overdue_lessons }}</strong>
-                        </div>
-                        {% endif %}
-                        <div class="stat-row total-revenue">
-                            <span>Total Revenue:</span>
-                            <strong>£{{ "%.2f"|format(data.total_revenue) }}</strong>
+                        <div class="lesson-details">
+                            {% if student.email %}
+                                ✉️ {{ student.email }}<br>
+                            {% endif %}
+                            {% if student.phone %}
+                                📱 {{ student.phone }}<br>
+                            {% endif %}
+                            📅 Student since {{ student.created_at.strftime('%d/%m/%Y') }}
                         </div>
                     </div>
-                    
-                    <div class="student-actions">
-                        <button class="btn btn-sm btn-primary" onclick="viewStudentLessons({{ data.student.id }})">
-                            View Lessons
-                        </button>
-                        {% if data.pending_lessons > 0 or data.overdue_lessons > 0 %}
-                        <button class="btn btn-sm btn-warning" onclick="sendStudentReminder({{ data.student.id }})">
-                            Send Reminder
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
                 {% endfor %}
             </div>
+            
+            <!-- Pagination -->
+            {% if students.pages > 1 %}
+                <div class="pagination">
+                    {% if students.has_prev %}
+                        <a href="{{ url_for('students', page=students.prev_num) }}" class="btn btn-sm">Previous</a>
+                    {% endif %}
+                    
+                    {% for page_num in students.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != students.page %}
+                                <a href="{{ url_for('students', page=page_num) }}" class="btn btn-sm">{{ page_num }}</a>
+                            {% else %}
+                                <span class="btn btn-sm btn-primary">{{ page_num }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span>...</span>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if students.has_next %}
+                        <a href="{{ url_for('students', page=students.next_num) }}" class="btn btn-sm">Next</a>
+                    {% endif %}
+                </div>
+            {% endif %}
         {% else %}
             <div class="empty-state">
-                <h3>No students yet</h3>
-                <p>Students will appear here automatically when you add lessons.</p>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Add Your First Lesson</a>
+                <p>No students found. Add your first lesson to get started!</p>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Add Lesson</a>
             </div>
         {% endif %}
     </div>
 </div>
-
-<!-- Student Lessons Modal -->
-<div id="studentLessonsModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="studentModalTitle">Student Lessons</h3>
-            <button class="modal-close" onclick="closeModal('studentLessonsModal')">&times;</button>
-        </div>
-        <div class="modal-body" id="studentLessonsContent">
-            <!-- Lessons will be loaded here -->
-        </div>
-    </div>
-</div>
-
-<style>
-.students-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 2rem;
-    margin-top: 2rem;
-}
-
-.student-card {
-    background: var(--white);
-    border-radius: 15px;
-    padding: 2rem;
-    box-shadow: var(--shadow);
-    transition: transform 0.3s, box-shadow 0.3s;
-    border-left: 4px solid var(--primary-color);
-}
-
-.student-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-lg);
-}
-
-.student-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.student-header h3 {
-    color: var(--text-dark);
-    margin: 0;
-    font-size: 1.3rem;
-}
-
-.student-date {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
-.student-contact {
-    margin-bottom: 1.5rem;
-}
-
-.student-contact p {
-    margin: 0.5rem 0;
-    color: var(--text-muted);
-}
-
-.student-stats {
-    margin-bottom: 1.5rem;
-}
-
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.stat-row:last-child {
-    border-bottom: none;
-}
-
-.total-revenue {
-    background: var(--light-bg);
-    padding: 0.75rem;
-    border-radius: 8px;
-    font-weight: 600;
-    margin-top: 1rem;
-}
-
-.text-success { color: var(--success-color); }
-.text-danger { color: var(--danger-color); }
-.text-warning { color: var(--warning-color); }
-
-.student-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.student-actions .btn {
-    flex: 1;
-    min-width: 120px;
-}
-
-@media (max-width: 768px) {
-    .students-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .student-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    
-    .student-actions {
-        flex-direction: column;
-    }
-    
-    .student-actions .btn {
-        width: 100%;
-    }
-}
-</style>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function viewStudentLessons(studentId) {
-    fetch(`/api/lessons?student_id=${studentId}`)
-        .then(response => response.json())
-        .then(lessons => {
-            const modal = document.getElementById('studentLessonsModal');
-            const title = document.getElementById('studentModalTitle');
-            const content = document.getElementById('studentLessonsContent');
-            
-            if (lessons.length > 0) {
-                title.textContent = `${lessons[0].student_name}'s Lessons`;
-                content.innerHTML = lessons.map(lesson => `
-                    <div class="lesson-item ${lesson.status}" style="margin-bottom: 1rem;">
-                        <div class="lesson-header">
-                            <div class="lesson-student">${formatDate(lesson.date)} at ${lesson.time}</div>
-                            <div class="lesson-status status-${lesson.status}">${lesson.status}</div>
-                        </div>
-                        <div class="lesson-details">
-                            ⏱️ ${lesson.duration}h | 🏷️ ${lesson.lesson_type} | 💰 £${lesson.total_amount.toFixed(2)}
-                            ${lesson.notes ? `<br>📝 ${lesson.notes}` : ''}
-                            <br><small>📄 ${lesson.invoice_number}</small>
-                        </div>
-                        <div class="lesson-actions">
-                            <button class="btn btn-sm" onclick="viewInvoice(${lesson.id})">View Invoice</button>
-                            ${lesson.status === 'pending' ? 
-                                `<button class="btn btn-sm btn-success" onclick="markAsPaid(${lesson.id})">Mark Paid</button>` : ''}
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                title.textContent = 'Student Lessons';
-                content.innerHTML = '<div class="empty-state">No lessons found for this student.</div>';
-            }
-            
-            showModal('studentLessonsModal');
-        })
-        .catch(error => {
-            console.error('Error loading student lessons:', error);
-            showNotification('Error loading lessons', 'error');
-        });
-}
-
-function sendStudentReminder(studentId) {
-    // Implementation for sending reminder to specific student
-    fetch(`/api/send_student_reminder/${studentId}`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-        } else {
-            showNotification(data.error || 'Error sending reminder', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error sending reminder', 'error');
-    });
-}
-
-function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('en-GB');
-}
-
-function markAsPaid(lessonId) {
-    if (!confirm('Mark this lesson as paid?')) return;
-    
-    fetch(`/api/lesson/${lessonId}/mark_paid`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-            closeModal('studentLessonsModal');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            showNotification(data.error || 'Error updating lesson', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error updating lesson', 'error');
-    });
-}
-
-function viewInvoice(lessonId) {
-    window.open(`/invoice/${lessonId}`, '_blank');
-}
-</script>
 {% endblock %}

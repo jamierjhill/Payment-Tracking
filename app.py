@@ -1,4 +1,4 @@
-# app.py - Simplified Tennis Coach Invoice Manager
+# app.py - Fixed CSRF and Form Issues
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm, CSRFProtect
@@ -102,6 +102,10 @@ class InvoiceForm(FlaskForm):
     description = TextAreaField('Description', validators=[DataRequired(), Length(max=500)])
     due_date = DateField('Due Date', validators=[DataRequired()])
 
+# Simple form for CSRF protection on POST requests
+class CSRFForm(FlaskForm):
+    pass
+
 # Authentication decorator
 def login_required(f):
     @wraps(f)
@@ -175,18 +179,7 @@ def logout():
 def dashboard():
     coach_id = session['coach_id']
     
-    # Get statistics
-    total_invoices = Invoice.query.filter_by(coach_id=coach_id).count()
-    pending_invoices = Invoice.query.filter_by(coach_id=coach_id, status='pending').count()
-    total_pending_amount = db.session.query(db.func.sum(Invoice.amount))\
-        .filter_by(coach_id=coach_id, status='pending').scalar() or 0
-    
-    # Recent invoices
-    recent_invoices = Invoice.query.filter_by(coach_id=coach_id)\
-        .order_by(Invoice.created_at.desc())\
-        .limit(5).all()
-    
-    # Mark overdue invoices
+    # Mark overdue invoices first
     today = datetime.now().date()
     Invoice.query.filter(
         Invoice.coach_id == coach_id,
@@ -195,7 +188,17 @@ def dashboard():
     ).update({'status': 'overdue'})
     db.session.commit()
     
+    # Get statistics
+    total_invoices = Invoice.query.filter_by(coach_id=coach_id).count()
+    pending_invoices = Invoice.query.filter_by(coach_id=coach_id, status='pending').count()
     overdue_count = Invoice.query.filter_by(coach_id=coach_id, status='overdue').count()
+    total_pending_amount = db.session.query(db.func.sum(Invoice.amount))\
+        .filter_by(coach_id=coach_id, status='pending').scalar() or 0
+    
+    # Recent invoices
+    recent_invoices = Invoice.query.filter_by(coach_id=coach_id)\
+        .order_by(Invoice.created_at.desc())\
+        .limit(5).all()
     
     return render_template('dashboard.html',
                          total_invoices=total_invoices,
@@ -210,6 +213,15 @@ def invoices():
     coach_id = session['coach_id']
     status_filter = request.args.get('status', 'all')
     
+    # Mark overdue invoices first
+    today = datetime.now().date()
+    Invoice.query.filter(
+        Invoice.coach_id == coach_id,
+        Invoice.status == 'pending',
+        Invoice.due_date < today
+    ).update({'status': 'overdue'})
+    db.session.commit()
+    
     query = Invoice.query.filter_by(coach_id=coach_id)
     
     if status_filter != 'all':
@@ -217,7 +229,13 @@ def invoices():
     
     invoices = query.order_by(Invoice.created_at.desc()).all()
     
-    return render_template('invoices.html', invoices=invoices, status_filter=status_filter)
+    # Create CSRF form for the mark as paid buttons
+    csrf_form = CSRFForm()
+    
+    return render_template('invoices.html', 
+                         invoices=invoices, 
+                         status_filter=status_filter,
+                         csrf_form=csrf_form)
 
 @app.route('/create-invoice', methods=['GET', 'POST'])
 @login_required
@@ -250,6 +268,12 @@ def create_invoice():
 @app.route('/mark-paid/<int:invoice_id>', methods=['POST'])
 @login_required
 def mark_paid(invoice_id):
+    # Validate CSRF token
+    csrf_form = CSRFForm()
+    if not csrf_form.validate_on_submit():
+        flash('Security token expired. Please try again.', 'error')
+        return redirect(url_for('invoices'))
+    
     invoice = Invoice.query.filter_by(
         id=invoice_id, 
         coach_id=session['coach_id']
@@ -261,10 +285,12 @@ def mark_paid(invoice_id):
         
         try:
             db.session.commit()
-            flash('Invoice marked as paid!', 'success')
+            flash(f'Invoice {invoice.invoice_number} marked as paid!', 'success')
         except Exception:
             db.session.rollback()
             flash('Failed to update invoice. Please try again.', 'error')
+    else:
+        flash('Invoice is already marked as paid.', 'info')
     
     return redirect(url_for('invoices'))
 

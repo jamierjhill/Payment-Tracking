@@ -1,16 +1,16 @@
-<!-- templates/create_invoice.html -->
+<!-- templates/edit_invoice.html -->
 {% extends "base.html" %}
-{% block title %}Create Invoice{% endblock %}
+{% block title %}Edit Invoice {{ invoice.invoice_number }}{% endblock %}
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
-        <h2 class="fw-bold"><i class="bi bi-plus-circle"></i> Create New Invoice</h2>
-        <p class="text-muted">Generate a professional invoice for your coaching services</p>
+        <h2 class="fw-bold"><i class="bi bi-pencil"></i> Edit Invoice {{ invoice.invoice_number }}</h2>
+        <p class="text-muted">Update the details for this invoice</p>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-lg-8 mx-auto">
+    <div class="col-lg-8">
         <div class="card">
             <div class="card-body">
                 <form method="POST">
@@ -76,51 +76,53 @@
                         {% endif %}
                     </div>
                     
-                    <div class="mb-4">
-                        <h6>Common Due Date Options:</h6>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDueDate(7)">
-                                7 Days
-                            </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDueDate(14)">
-                                14 Days
-                            </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDueDate(30)">
-                                30 Days
-                            </button>
-                        </div>
-                    </div>
-                    
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-receipt"></i> Create Invoice
+                            <i class="bi bi-save"></i> Update Invoice
                         </button>
-                        <a href="{{ url_for('invoices') }}" class="btn btn-outline-secondary">
-                            Cancel
+                        <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Invoice
                         </a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h5><i class="bi bi-info-circle"></i> Current Status</h5>
+                <div class="mb-3">
+                    <strong>Invoice #:</strong> {{ invoice.invoice_number }}
+                </div>
+                <div class="mb-3">
+                    <strong>Status:</strong>
+                    {% if invoice.status == 'paid' %}
+                        <span class="badge bg-success">Paid</span>
+                    {% elif invoice.status == 'overdue' %}
+                        <span class="badge bg-danger">Overdue</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <strong>Created:</strong> {{ invoice.created_at.strftime('%d/%m/%Y') }}
+                </div>
+                {% if invoice.paid_at %}
+                <div class="mb-3">
+                    <strong>Paid:</strong> {{ invoice.paid_at.strftime('%d/%m/%Y') }}
+                </div>
+                {% endif %}
+
+                {% if invoice.status == 'paid' %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Note:</strong> This invoice has been marked as paid. Editing may affect your records.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function setDueDate(days) {
-    const today = new Date();
-    const dueDate = new Date(today.getTime() + (days * 24 * 60 * 60 * 1000));
-    const dueDateString = dueDate.toISOString().split('T')[0];
-    document.querySelector('input[name="due_date"]').value = dueDateString;
-}
-
-// Set default due date to 14 days from now
-document.addEventListener('DOMContentLoaded', function() {
-    const dueDateInput = document.querySelector('input[name="due_date"]');
-    if (!dueDateInput.value) {
-        setDueDate(14);
-    }
-});
-</script>
 {% endblock %}

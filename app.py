@@ -237,6 +237,18 @@ def invoices():
                          status_filter=status_filter,
                          csrf_form=csrf_form)
 
+@app.route('/view-invoice/<int:invoice_id>')
+@login_required
+def view_invoice(invoice_id):
+    invoice = Invoice.query.filter_by(
+        id=invoice_id, 
+        coach_id=session['coach_id']
+    ).first_or_404()
+    
+    csrf_form = CSRFForm()
+    
+    return render_template('view_invoice.html', invoice=invoice, csrf_form=csrf_form)
+
 @app.route('/create-invoice', methods=['GET', 'POST'])
 @login_required
 def create_invoice():
@@ -258,11 +270,65 @@ def create_invoice():
             db.session.add(invoice)
             db.session.commit()
             flash('Invoice created successfully!', 'success')
-            return redirect(url_for('invoices'))
+            return redirect(url_for('view_invoice', invoice_id=invoice.id))
         except Exception:
             db.session.rollback()
             flash('Failed to create invoice. Please try again.', 'error')
     
+    return render_template('create_invoice.html', form=form)
+
+@app.route('/edit-invoice/<int:invoice_id>', methods=['GET', 'POST'])
+@login_required
+def edit_invoice(invoice_id):
+    invoice = Invoice.query.filter_by(
+        id=invoice_id, 
+        coach_id=session['coach_id']
+    ).first_or_404()
+    
+    form = InvoiceForm(obj=invoice)
+    
+    if form.validate_on_submit():
+        invoice.student_name = form.student_name.data.strip()
+        invoice.student_email = form.student_email.data.lower() if form.student_email.data else None
+        invoice.amount = form.amount.data
+        invoice.description = form.description.data.strip()
+        invoice.due_date = form.due_date.data
+        
+        # Check if we need to update status based on new due date
+        today = datetime.now().date()
+        if invoice.status == 'pending' and invoice.due_date < today:
+            invoice.status = 'overdue'
+        elif invoice.status == 'overdue' and invoice.due_date >= today:
+            invoice.status = 'pending'
+        
+        try:
+            db.session.commit()
+            flash('Invoice updated successfully!', 'success')
+            return redirect(url_for('view_invoice', invoice_id=invoice.id))
+        except Exception:
+            db.session.rollback()
+            flash('Failed to update invoice. Please try again.', 'error')
+    
+    return render_template('edit_invoice.html', form=form, invoice=invoice)
+
+@app.route('/repeat-invoice/<int:invoice_id>')
+@login_required
+def repeat_invoice(invoice_id):
+    original_invoice = Invoice.query.filter_by(
+        id=invoice_id, 
+        coach_id=session['coach_id']
+    ).first_or_404()
+    
+    # Create a form with the original invoice data
+    form = InvoiceForm()
+    form.student_name.data = original_invoice.student_name
+    form.student_email.data = original_invoice.student_email
+    form.amount.data = original_invoice.amount
+    form.description.data = original_invoice.description
+    # Set due date to 14 days from today by default
+    form.due_date.data = datetime.now().date() + timedelta(days=14)
+    
+    flash(f'Creating new invoice based on {original_invoice.invoice_number}', 'info')
     return render_template('create_invoice.html', form=form)
 
 @app.route('/mark-paid/<int:invoice_id>', methods=['POST'])
@@ -291,6 +357,33 @@ def mark_paid(invoice_id):
             flash('Failed to update invoice. Please try again.', 'error')
     else:
         flash('Invoice is already marked as paid.', 'info')
+    
+    # Redirect back to the referring page if possible
+    return redirect(request.referrer or url_for('invoices'))
+
+@app.route('/delete-invoice/<int:invoice_id>', methods=['POST'])
+@login_required
+def delete_invoice(invoice_id):
+    # Validate CSRF token
+    csrf_form = CSRFForm()
+    if not csrf_form.validate_on_submit():
+        flash('Security token expired. Please try again.', 'error')
+        return redirect(url_for('invoices'))
+    
+    invoice = Invoice.query.filter_by(
+        id=invoice_id, 
+        coach_id=session['coach_id']
+    ).first_or_404()
+    
+    invoice_number = invoice.invoice_number
+    
+    try:
+        db.session.delete(invoice)
+        db.session.commit()
+        flash(f'Invoice {invoice_number} has been deleted.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('Failed to delete invoice. Please try again.', 'error')
     
     return redirect(url_for('invoices'))
 

@@ -1,0 +1,118 @@
+<!-- templates/create_invoice.html -->
+{% extends "base.html" %}
+
+{% block title %}Create Invoice - Tennis Coach Pro{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('invoices') }}">Invoices</a></li>
+                <li class="breadcrumb-item active">Create Invoice</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold"><i class="bi bi-plus-circle"></i> Create New Invoice</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-receipt"></i> Invoice Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="invoiceForm" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.student_id.label(class="form-label") }}
+                            {{ form.student_id(class="form-select", id="studentSelect") }}
+                            {% if form.student_id.errors %}
+                                <div class="text-danger small">
+                                    {% for error in form.student_id.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.amount.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.amount(class="form-control", id="amountInput", step="0.01", min="0.01", max="99999.99") }}
+                            </div>
+                            {% if form.amount.errors %}
+                                <div class="text-danger small">
+                                    {% for error in form.amount.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="3", placeholder="e.g., Tennis lessons for January 2025", maxlength="500") }}
+                        <div class="form-text">
+                            <span id="charCount">0</span>/500 characters
+                        </div>
+                        {% if form.description.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.description.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.due_date.label(class="form-label") }}
+                            {{ form.due_date(class="form-control", id="dueDateInput", min=today) }}
+                            {% if form.due_date.errors %}
+                                <div class="text-danger small">
+                                    {% for error in form.due_date.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Quick Due Date</label>
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDueDate(7)">
+                                    7 days
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDueDate(14)">
+                                    14 days
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDueDate(30)">
+                                    30 days
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" id="submitSpinner"></span>
+                            <i class="bi bi-receipt" id="submitIcon"></i> Create Invoice
+                        </button>
+                        <a href="{{ url_for('invoices') }}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Invoice Preview -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-eye"></i> Preview</h5>
+            </div>
+            <div class="card-body">
+                <div id="invoicePreview" class="border rounded p-3 bg-light">
+                    <div class="text-center mb-3">
+                        <h6 class="fw-bold text-primary">{{ session['coach_name'] }}</h6>
+                        <small class="text-muted">Tennis Coaching Invoice</small

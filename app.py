@@ -1,4 +1,4 @@
-# app.py - Fixed CSRF and Form Issues
+# app.py - CoachPay - Invoice Management for Coaches
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm, CSRFProtect
@@ -23,7 +23,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 
 # Database Configuration
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///tennis_invoices.db')
+database_url = os.environ.get('DATABASE_URL', 'sqlite:///coachpay.db')
 if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
@@ -67,7 +67,7 @@ class Invoice(db.Model):
     def generate_invoice_number(self, coach_id):
         """Generate unique invoice number"""
         today = datetime.now()
-        prefix = f"INV-{coach_id}-{today.strftime('%Y%m')}"
+        prefix = f"CP-{coach_id}-{today.strftime('%Y%m')}"
         
         existing = db.session.query(Invoice.invoice_number)\
             .filter(Invoice.invoice_number.like(f"{prefix}%"))\
@@ -98,7 +98,7 @@ class RegisterForm(FlaskForm):
 class InvoiceForm(FlaskForm):
     student_name = StringField('Student Name', validators=[DataRequired(), Length(min=2, max=100)])
     student_email = EmailField('Student Email (Optional)', validators=[Email()])
-    amount = DecimalField('Amount ($)', validators=[DataRequired(), NumberRange(min=0.01, max=9999.99)])
+    amount = DecimalField('Amount (£)', validators=[DataRequired(), NumberRange(min=0.01, max=9999.99)])
     description = TextAreaField('Description', validators=[DataRequired(), Length(max=500)])
     due_date = DateField('Due Date', validators=[DataRequired()])
 

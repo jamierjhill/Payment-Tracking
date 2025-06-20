@@ -4,7 +4,8 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
-        <h2 class="fw-bold">Dashboard - Welcome {{ session['coach_name'] }}!</h2>
+        <h2 class="fw-bold">Welcome back, {{ session['coach_name'] }}! 👋</h2>
+        <p class="text-muted">Here's your invoice overview for today.</p>
     </div>
 </div>
 
@@ -42,8 +43,8 @@
     <div class="col-md-3 mb-3">
         <div class="card bg-success text-white">
             <div class="card-body text-center">
-                <i class="bi bi-currency-dollar display-4"></i>
-                <h3>${{ "%.2f"|format(total_pending_amount) }}</h3>
+                <i class="bi bi-currency-pound display-4"></i>
+                <h3>£{{ "%.2f"|format(total_pending_amount) }}</h3>
                 <p>Pending Amount</p>
             </div>
         </div>
@@ -75,7 +76,7 @@
                             <tr>
                                 <td>{{ invoice.invoice_number }}</td>
                                 <td>{{ invoice.student_name }}</td>
-                                <td>${{ "%.2f"|format(invoice.amount) }}</td>
+                                <td>£{{ "%.2f"|format(invoice.amount) }}</td>
                                 <td>
                                     {% if invoice.status == 'paid' %}
                                         <span class="badge bg-success">Paid</span>
@@ -94,7 +95,10 @@
                 <div class="text-center py-4">
                     <i class="bi bi-receipt display-1 text-muted"></i>
                     <h5 class="text-muted mt-3">No invoices yet</h5>
-                    <a href="{{ url_for('create_invoice') }}" class="btn btn-primary">Create Your First Invoice</a>
+                    <p class="text-muted">Create your first invoice to get started tracking payments</p>
+                    <a href="{{ url_for('create_invoice') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Create Your First Invoice
+                    </a>
                 </div>
                 {% endif %}
             </div>
@@ -112,7 +116,26 @@
                     <a href="{{ url_for('invoices', status='pending') }}" class="btn btn-outline-warning">
                         <i class="bi bi-clock"></i> View Pending
                     </a>
+                    {% if overdue_count > 0 %}
+                    <a href="{{ url_for('invoices', status='overdue') }}" class="btn btn-outline-danger">
+                        <i class="bi bi-exclamation-triangle"></i> View Overdue ({{ overdue_count }})
+                    </a>
+                    {% endif %}
                 </div>
+                
+                {% if pending_invoices > 0 or overdue_count > 0 %}
+                <div class="mt-4 p-3 bg-light rounded">
+                    <h6 class="fw-bold">📊 Quick Stats</h6>
+                    <small class="text-muted">
+                        {% if pending_invoices > 0 %}
+                        <div>• {{ pending_invoices }} invoice{{ 's' if pending_invoices != 1 else '' }} awaiting payment</div>
+                        {% endif %}
+                        {% if overdue_count > 0 %}
+                        <div class="text-danger">• {{ overdue_count }} overdue invoice{{ 's' if overdue_count != 1 else '' }}</div>
+                        {% endif %}
+                    </small>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

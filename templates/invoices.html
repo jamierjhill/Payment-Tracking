@@ -67,9 +67,9 @@
                     <tr>
                         <td><strong>{{ invoice.invoice_number }}</strong></td>
                         <td>{{ invoice.student_name }}</td>
-                        <td><strong>${{ "%.2f"|format(invoice.amount) }}</strong></td>
-                        <td>{{ invoice.date_issued.strftime('%m/%d/%Y') }}</td>
-                        <td>{{ invoice.due_date.strftime('%m/%d/%Y') }}</td>
+                        <td><strong>£{{ "%.2f"|format(invoice.amount) }}</strong></td>
+                        <td>{{ invoice.date_issued.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ invoice.due_date.strftime('%d/%m/%Y') }}</td>
                         <td>
                             {% if invoice.status == 'paid' %}
                                 <span class="badge bg-success">
@@ -98,7 +98,7 @@
                             <span class="text-muted small">
                                 <i class="bi bi-check-circle"></i> Paid
                                 {% if invoice.paid_at %}
-                                    {{ invoice.paid_at.strftime('%m/%d/%Y') }}
+                                    {{ invoice.paid_at.strftime('%d/%m/%Y') }}
                                 {% endif %}
                             </span>
                             {% endif %}
@@ -124,7 +124,7 @@
                     <div class="card-body text-center">
                         <h5>Total Amount</h5>
                         <h3 class="text-success">
-                            ${{ "%.2f"|format(invoices|sum(attribute='amount')|float) }}
+                            £{{ "%.2f"|format(invoices|sum(attribute='amount')|float) }}
                         </h3>
                     </div>
                 </div>
@@ -135,7 +135,7 @@
                         <h5>Pending Amount</h5>
                         <h3 class="text-warning">
                             {% set pending_amount = invoices|selectattr('status', 'ne', 'paid')|sum(attribute='amount')|float %}
-                            ${{ "%.2f"|format(pending_amount) }}
+                            £{{ "%.2f"|format(pending_amount) }}
                         </h3>
                     </div>
                 </div>
@@ -154,7 +154,7 @@
             </h4>
             <p class="text-muted">
                 {% if status_filter == 'all' %}
-                    Create your first invoice to get started
+                    Create your first invoice to start tracking payments
                 {% else %}
                     Try viewing all invoices or create a new one
                 {% endif %}

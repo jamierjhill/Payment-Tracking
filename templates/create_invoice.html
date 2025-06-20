@@ -5,6 +5,7 @@
 <div class="row mb-4">
     <div class="col-12">
         <h2 class="fw-bold"><i class="bi bi-plus-circle"></i> Create New Invoice</h2>
+        <p class="text-muted">Generate a professional invoice for your coaching services</p>
     </div>
 </div>
 
@@ -18,7 +19,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             {{ form.student_name.label(class="form-label") }}
-                            {{ form.student_name(class="form-control") }}
+                            {{ form.student_name(class="form-control", placeholder="e.g., John Smith") }}
                             {% if form.student_name.errors %}
                                 <div class="text-danger small">
                                     {% for error in form.student_name.errors %}{{ error }}{% endfor %}
@@ -28,7 +29,8 @@
                         
                         <div class="col-md-6 mb-3">
                             {{ form.student_email.label(class="form-label") }}
-                            {{ form.student_email(class="form-control") }}
+                            {{ form.student_email(class="form-control", placeholder="john@example.com") }}
+                            <div class="form-text">Optional - for future email reminders</div>
                             {% if form.student_email.errors %}
                                 <div class="text-danger small">
                                     {% for error in form.student_email.errors %}{{ error }}{% endfor %}
@@ -41,8 +43,8 @@
                         <div class="col-md-6 mb-3">
                             {{ form.amount.label(class="form-label") }}
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                {{ form.amount(class="form-control", step="0.01") }}
+                                <span class="input-group-text">£</span>
+                                {{ form.amount(class="form-control", step="0.01", placeholder="50.00") }}
                             </div>
                             {% if form.amount.errors %}
                                 <div class="text-danger small">
@@ -54,6 +56,7 @@
                         <div class="col-md-6 mb-3">
                             {{ form.due_date.label(class="form-label") }}
                             {{ form.due_date(class="form-control") }}
+                            <div class="form-text">When payment is due</div>
                             {% if form.due_date.errors %}
                                 <div class="text-danger small">
                                     {% for error in form.due_date.errors %}{{ error }}{% endfor %}
@@ -64,7 +67,8 @@
                     
                     <div class="mb-3">
                         {{ form.description.label(class="form-label") }}
-                        {{ form.description(class="form-control", rows="3", placeholder="e.g., Tennis lessons for January 2025") }}
+                        {{ form.description(class="form-control", rows="3", placeholder="e.g., Tennis coaching sessions - January 2025 (4 x 1-hour sessions)") }}
+                        <div class="form-text">Describe the coaching services provided</div>
                         {% if form.description.errors %}
                             <div class="text-danger small">
                                 {% for error in form.description.errors %}{{ error }}{% endfor %}
@@ -90,16 +94,38 @@
             <div class="card-body">
                 <h5><i class="bi bi-info-circle"></i> Quick Tips</h5>
                 <ul class="list-unstyled">
-                    <li class="mb-2"><i class="bi bi-check text-success"></i> Student email is optional</li>
-                    <li class="mb-2"><i class="bi bi-check text-success"></i> Invoice numbers are auto-generated</li>
-                    <li class="mb-2"><i class="bi bi-check text-success"></i> Set due date for payment tracking</li>
+                    <li class="mb-2"><i class="bi bi-check text-success"></i> Invoice numbers are automatically generated</li>
+                    <li class="mb-2"><i class="bi bi-check text-success"></i> Student email is optional but recommended</li>
+                    <li class="mb-2"><i class="bi bi-check text-success"></i> Set realistic due dates for better payment rates</li>
+                    <li class="mb-2"><i class="bi bi-check text-success"></i> Be specific in your description</li>
                 </ul>
                 
                 <div class="mt-3">
-                    <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="setDueDate(14)">
-                        Set Due Date: 14 Days
-                    </button>
+                    <h6>Common Due Date Options:</h6>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDueDate(7)">
+                            7 Days
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDueDate(14)">
+                            14 Days
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDueDate(30)">
+                            30 Days
+                        </button>
+                    </div>
                 </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6><i class="bi bi-lightbulb"></i> Pro Tips</h6>
+                <small class="text-muted">
+                    <div class="mb-2">💰 Most coaches charge £30-60 per hour</div>
+                    <div class="mb-2">📅 2-week payment terms work best</div>
+                    <div class="mb-2">📝 Include session dates in description</div>
+                    <div>✉️ Add email for automatic reminders</div>
+                </small>
             </div>
         </div>
     </div>
@@ -117,7 +143,10 @@ function setDueDate(days) {
 
 // Set default due date to 14 days from now
 document.addEventListener('DOMContentLoaded', function() {
-    setDueDate(14);
+    const dueDateInput = document.querySelector('input[name="due_date"]');
+    if (!dueDateInput.value) {
+        setDueDate(14);
+    }
 });
 </script>
 {% endblock %}

@@ -4,47 +4,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tennis Coach Invoice Manager</title>
+    <title>CoachPay - Invoice Management for Coaches</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
         .hero-section {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%);
             color: white;
-            padding: 100px 0;
+            padding: 120px 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.25rem;
+            font-weight: 400;
+            margin-bottom: 2.5rem;
+            opacity: 0.9;
+        }
+        
+        .btn-hero {
+            padding: 12px 32px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+        }
+        
+        .feature-icon {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+        
+        .feature-card {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #111827;
+        }
+        
+        .feature-text {
+            color: #6b7280;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        .testimonial-section {
+            background-color: #f8fafc;
+            padding: 80px 0;
+        }
+        
+        .testimonial-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+        
+        .testimonial-text {
+            font-style: italic;
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            color: #374151;
+        }
+        
+        .testimonial-author {
+            font-weight: 600;
+            color: #2563eb;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 3rem;
+            color: #111827;
         }
     </style>
 </head>
 <body>
     <div class="hero-section">
-        <div class="container text-center">
-            <h1 class="display-4 fw-bold mb-4">Tennis Coach Invoice Manager</h1>
-            <p class="lead mb-4">Simple, secure invoice management for tennis coaches. Stop using Apple Notes and Excel.</p>
-            <div class="d-grid gap-2 d-md-flex justify-content-center">
-                <a href="{{ url_for('register') }}" class="btn btn-light btn-lg px-4 me-md-2">Get Started Free</a>
-                <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg px-4">Login</a>
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="hero-title">Stop using Apple Notes for your invoices</h1>
+                    <p class="hero-subtitle">
+                        CoachPay helps coaches create professional invoices, track payments, and get paid faster. 
+                        Say goodbye to spreadsheets and hello to streamlined billing.
+                    </p>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <a href="{{ url_for('register') }}" class="btn btn-light btn-hero">
+                            <i class="bi bi-rocket-takeoff me-2"></i>Start Free Trial
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-hero">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="text-center">
+                        <i class="bi bi-credit-card-2-front" style="font-size: 12rem; opacity: 0.8;"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="container py-5">
-        <div class="row text-center">
-            <div class="col-md-4 mb-4">
-                <i class="bi bi-receipt-cutoff display-1 text-success"></i>
-                <h4>Create Invoices</h4>
-                <p class="text-muted">Professional invoices with automatic numbering</p>
+        <h2 class="section-title">Everything you need to manage invoices</h2>
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-receipt-cutoff" style="font-size: 2rem;"></i>
+                    </div>
+                    <h4 class="feature-title">Professional Invoices</h4>
+                    <p class="feature-text">
+                        Create polished invoices with automatic numbering, due dates, and client details. 
+                        No more manual tracking in notes.
+                    </p>
+                </div>
             </div>
-            <div class="col-md-4 mb-4">
-                <i class="bi bi-cash-coin display-1 text-success"></i>
-                <h4>Track Payments</h4>
-                <p class="text-muted">See who has paid and who hasn't at a glance</p>
+            <div class="col-lg-4 mb-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-eye" style="font-size: 2rem;"></i>
+                    </div>
+                    <h4 class="feature-title">Payment Tracking</h4>
+                    <p class="feature-text">
+                        See who's paid and who hasn't at a glance. Automatic overdue notifications 
+                        help you stay on top of payments.
+                    </p>
+                </div>
             </div>
-            <div class="col-md-4 mb-4">
-                <i class="bi bi-shield-check display-1 text-success"></i>
-                <h4>Secure & Simple</h4>
-                <p class="text-muted">Bank-level security with simple interface</p>
+            <div class="col-lg-4 mb-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-shield-check" style="font-size: 2rem;"></i>
+                    </div>
+                    <h4 class="feature-title">Secure & Simple</h4>
+                    <p class="feature-text">
+                        Bank-level security with a clean, intuitive interface. 
+                        Built specifically for coaches who want simplicity.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
+
+    <div class="testimonial-section">
+        <div class="container">
+            <h2 class="section-title">What coaches are saying</h2>
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <div class="testimonial-card">
+                        <p class="testimonial-text">
+                            "I was using Apple Notes to track who paid for lessons. CoachPay has made my life so much easier - I can see everything in one place."
+                        </p>
+                        <div class="testimonial-author">Sarah M., Tennis Coach</div>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <div class="testimonial-card">
+                        <p class="testimonial-text">
+                            "Finally, a simple solution that just works. No complicated features I don't need - just clean invoicing and payment tracking."
+                        </p>
+                        <div class="testimonial-author">James R., Football Coach</div>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <div class="testimonial-card">
+                        <p class="testimonial-text">
+                            "The automatic overdue tracking has helped me get paid faster. I wish I'd found this sooner!"
+                        </p>
+                        <div class="testimonial-author">Emma T., Swimming Coach</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container py-5">
+        <div class="text-center">
+            <h2 class="section-title">Ready to streamline your invoicing?</h2>
+            <p class="lead mb-4">Join hundreds of coaches who've simplified their billing with CoachPay</p>
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-hero">
+                <i class="bi bi-rocket-takeoff me-2"></i>Get Started Free
+            </a>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2025 CoachPay. Simple, secure invoice management for coaches.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

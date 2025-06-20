@@ -1,0 +1,132 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tennis Coach Invoice Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 80px 0;
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            color: #28a745;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 1rem;
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold mb-4">Manage Your Tennis Coaching Business</h1>
+                    <p class="lead mb-4">Stop using Apple Notes and Excel. Create professional invoices, track payments, and manage your students all in one secure platform.</p>
+                    <div class="d-grid gap-2 d-md-flex">
+                        <a href="{{ url_for('register') }}" class="btn btn-light btn-lg px-4 me-md-2">
+                            Get Started Free
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg px-4">
+                            Login
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-6 text-center">
+                    <i class="bi bi-trophy display-1"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="container py-5">
+        <div class="row text-center mb-5">
+            <div class="col-12">
+                <h2 class="fw-bold">Everything You Need to Run Your Coaching Business</h2>
+                <p class="text-muted">Simple, secure, and designed specifically for tennis coaches</p>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="feature-card">
+                    <i class="bi bi-receipt-cutoff feature-icon"></i>
+                    <h4>Professional Invoices</h4>
+                    <p class="text-muted">Create and send professional invoices with automatic numbering and due date tracking.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="feature-card">
+                    <i class="bi bi-people feature-icon"></i>
+                    <h4>Student Management</h4>
+                    <p class="text-muted">Keep track of all your students' contact information and lesson history in one place.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="feature-card">
+                    <i class="bi bi-cash-coin feature-icon"></i>
+                    <h4>Payment Tracking</h4>
+                    <p class="text-muted">See exactly who has paid and who hasn't at a glance. Never miss a payment again.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="feature-card">
+                    <i class="bi bi-shield-check feature-icon"></i>
+                    <h4>Secure & Private</h4>
+                    <p class="text-muted">Your financial data is protected with bank-level security and encryption.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="feature-card">
+                    <i class="bi bi-phone feature-icon"></i>
+                    <h4>Mobile Friendly</h4>
+                    <p class="text-muted">Access your business data from anywhere, on any device. Perfect for on-court use.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="feature-card">
+                    <i class="bi bi-clock feature-icon"></i>
+                    <h4>Time Saving</h4>
+                    <p class="text-muted">Spend less time on admin and more time coaching. Automated reminders and tracking.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="bg-light py-5">
+        <div class="container text-center">
+            <h3 class="fw-bold mb-3">Ready to Streamline Your Coaching Business?</h3>
+            <p class="text-muted mb-4">Join coaches who have already simplified their invoice management</p>
+            <a href="{{ url_for('register') }}" class="btn btn-success btn-lg">Start Your Free Account</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

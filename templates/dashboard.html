@@ -1,0 +1,162 @@
+<!-- templates/dashboard.html -->
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Tennis Coach Pro{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold">
+            <i class="bi bi-speedometer2"></i> Dashboard
+            <small class="text-muted">Welcome back, {{ session['coach_name'] }}!</small>
+        </h2>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-people display-4 mb-2"></i>
+                <h3 class="card-title">{{ total_students }}</h3>
+                <p class="card-text">Active Students</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-clock display-4 mb-2"></i>
+                <h3 class="card-title">{{ pending_invoices }}</h3>
+                <p class="card-text">Pending Invoices</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-currency-dollar display-4 mb-2"></i>
+                <h3 class="card-title">${{ "%.2f"|format(total_pending_amount) }}</h3>
+                <p class="card-text">Pending Amount</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card {% if overdue_invoices %}bg-danger{% else %}bg-info{% endif %} text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-exclamation-triangle display-4 mb-2"></i>
+                <h3 class="card-title">{{ overdue_invoices|length }}</h3>
+                <p class="card-text">Overdue Invoices</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Invoices -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-receipt"></i> Recent Invoices</h5>
+                <a href="{{ url_for('invoices') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_invoices %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Student</th>
+                                <th>Amount</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in recent_invoices %}
+                            <tr>
+                                <td><strong>{{ invoice.invoice_number }}</strong></td>
+                                <td>{{ invoice.student.name }}</td>
+                                <td>${{ "%.2f"|format(invoice.amount) }}</td>
+                                <td>{{ invoice.due_date.strftime('%m/%d/%Y') }}</td>
+                                <td>
+                                    {% if invoice.status == 'paid' %}
+                                        <span class="badge bg-success status-badge">Paid</span>
+                                    {% elif invoice.status == 'overdue' %}
+                                        <span class="badge bg-danger status-badge">Overdue</span>
+                                    {% else %}
+                                        <span class="badge bg-warning status-badge">Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-receipt display-1 text-muted"></i>
+                    <h5 class="text-muted mt-3">No invoices yet</h5>
+                    <p class="text-muted">Create your first invoice to get started</p>
+                    <a href="{{ url_for('create_invoice') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create Invoice
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions & Alerts -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('create_invoice') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> New Invoice
+                    </a>
+                    <a href="{{ url_for('add_student') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-person-plus"></i> Add Student
+                    </a>
+                    <a href="{{ url_for('invoices', status='pending') }}" class="btn btn-outline-warning">
+                        <i class="bi bi-clock"></i> View Pending
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Overdue Alerts -->
+        {% if overdue_invoices %}
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Overdue Invoices</h5>
+            </div>
+            <div class="card-body">
+                {% for invoice in overdue_invoices %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <strong>{{ invoice.student.name }}</strong><br>
+                        <small class="text-muted">{{ invoice.invoice_number }}</small>
+                    </div>
+                    <div class="text-end">
+                        <strong>${{ "%.2f"|format(invoice.amount) }}</strong><br>
+                        <small class="text-danger">{{ invoice.due_date.strftime('%m/%d/%Y') }}</small>
+                    </div>
+                </div>
+                {% if not loop.last %}<hr class="my-2">{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

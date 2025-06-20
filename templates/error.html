@@ -1,0 +1,25 @@
+<!-- templates/error.html -->
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Tennis Coach Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+        <div class="py-5">
+            <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
+            <h2 class="mt-4">{{ title }}</h2>
+            <p class="text-muted lead">{{ message }}</p>
+            <div class="mt-4">
+                <a href="{{ url_for('dashboard') if session.get('coach_id') else url_for('index') }}" 
+                   class="btn btn-primary">
+                    <i class="bi bi-house"></i> Go Home
+                </a>
+                <button onclick="history.back()" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Go Back
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

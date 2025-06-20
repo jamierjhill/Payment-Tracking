@@ -1,39 +1,33 @@
 <!-- templates/register.html -->
 {% extends "base.html" %}
-
-{% block title %}Register - Tennis Coach Pro{% endblock %}
-
+{% block title %}Register{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
+    <div class="col-md-6 col-lg-4">
         <div class="card">
-            <div class="card-header text-center">
-                <h4><i class="bi bi-person-plus"></i> Create Your Account</h4>
-            </div>
             <div class="card-body">
+                <h4 class="text-center mb-4"><i class="bi bi-person-plus"></i> Create Account</h4>
                 <form method="POST">
                     {{ form.hidden_tag() }}
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.name.label(class="form-label") }}
-                            {{ form.name(class="form-control") }}
-                            {% if form.name.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.name.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            {{ form.email.label(class="form-label") }}
-                            {{ form.email(class="form-control") }}
-                            {% if form.email.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.email.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.name.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control") }}
+                        {% if form.email.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.email.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                     
                     <div class="mb-3">
@@ -47,48 +41,14 @@
                         {% endif %}
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.business_name.label(class="form-label") }}
-                            {{ form.business_name(class="form-control") }}
-                            {% if form.business_name.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.business_name.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            {{ form.phone.label(class="form-label") }}
-                            {{ form.phone(class="form-control") }}
-                            {% if form.phone.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.phone.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.address.label(class="form-label") }}
-                        {{ form.address(class="form-control", rows="3") }}
-                        {% if form.address.errors %}
-                            <div class="text-danger small">
-                                {% for error in form.address.errors %}{{ error }}{% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-person-plus"></i> Create Account
-                        </button>
+                        <button type="submit" class="btn btn-primary">Create Account</button>
                     </div>
                 </form>
                 
                 <div class="text-center mt-3">
                     <p class="mb-0">Already have an account? 
-                        <a href="{{ url_for('login') }}" class="text-decoration-none">Login here</a>
+                        <a href="{{ url_for('login') }}">Login here</a>
                     </p>
                 </div>
             </div>

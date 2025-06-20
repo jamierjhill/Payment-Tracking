@@ -1,8 +1,6 @@
 <!-- templates/invoices.html -->
 {% extends "base.html" %}
-
-{% block title %}Invoices - Tennis Coach Pro{% endblock %}
-
+{% block title %}Invoices{% endblock %}
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-6">
@@ -68,21 +66,21 @@
                     {% for invoice in invoices %}
                     <tr>
                         <td><strong>{{ invoice.invoice_number }}</strong></td>
-                        <td>{{ invoice.student.name }}</td>
+                        <td>{{ invoice.student_name }}</td>
                         <td><strong>${{ "%.2f"|format(invoice.amount) }}</strong></td>
                         <td>{{ invoice.date_issued.strftime('%m/%d/%Y') }}</td>
                         <td>{{ invoice.due_date.strftime('%m/%d/%Y') }}</td>
                         <td>
                             {% if invoice.status == 'paid' %}
-                                <span class="badge bg-success status-badge">
+                                <span class="badge bg-success">
                                     <i class="bi bi-check-circle"></i> Paid
                                 </span>
                             {% elif invoice.status == 'overdue' %}
-                                <span class="badge bg-danger status-badge">
+                                <span class="badge bg-danger">
                                     <i class="bi bi-exclamation-triangle"></i> Overdue
                                 </span>
                             {% else %}
-                                <span class="badge bg-warning status-badge">
+                                <span class="badge bg-warning">
                                     <i class="bi bi-clock"></i> Pending
                                 </span>
                             {% endif %}
@@ -97,9 +95,6 @@
                                 </button>
                             </form>
                             {% endif %}
-                            <button class="btn btn-sm btn-outline-primary" onclick="viewInvoice({{ invoice.id }})" title="View Details">
-                                <i class="bi bi-eye"></i>
-                            </button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -153,323 +148,4 @@
         {% endif %}
     </div>
 </div>
-
-<!-- Invoice Details Modal -->
-<div class="modal fade" id="invoiceModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Invoice Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="invoiceDetails">
-                <!-- Invoice details will be loaded here -->
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function viewInvoice(invoiceId) {
-    // For now, just show a placeholder
-    // In a real app, you'd fetch invoice details via AJAX
-    const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
-    document.getElementById('invoiceDetails').innerHTML = `
-        <div class="text-center py-4">
-            <i class="bi bi-receipt display-1 text-muted"></i>
-            <h5 class="mt-3">Invoice Details</h5>
-            <p class="text-muted">Invoice ID: ${invoiceId}</p>
-            <p class="text-muted">Detailed invoice view coming soon...</p>
-        </div>
-    `;
-    modal.show();
-}
-
-// Auto-refresh status badges
-setInterval(function() {
-    fetch('{{ url_for("dashboard_stats") }}')
-        .then(response => response.json())
-        .then(data => {
-            // Update any live statistics if needed
-            console.log('Stats updated:', data);
-        })
-        .catch(error => console.log('Stats update failed:', error));
-}, 30000); // Every 30 seconds
-</script>
-{% endblock %}
-
-<!-- templates/create_invoice.html -->
-{% extends "base.html" %}
-
-{% block title %}Create Invoice - Tennis Coach Pro{% endblock %}
-
-{% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('invoices') }}">Invoices</a></li>
-                <li class="breadcrumb-item active">Create Invoice</li>
-            </ol>
-        </nav>
-        <h2 class="fw-bold"><i class="bi bi-plus-circle"></i> Create New Invoice</h2>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-receipt"></i> Invoice Information</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" id="invoiceForm">
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.student_id.label(class="form-label") }}
-                            {{ form.student_id(class="form-select", id="studentSelect") }}
-                            {% if form.student_id.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.student_id.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            {{ form.amount.label(class="form-label") }}
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                {{ form.amount(class="form-control", id="amountInput", step="0.01") }}
-                            </div>
-                            {% if form.amount.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.amount.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.description.label(class="form-label") }}
-                        {{ form.description(class="form-control", rows="3", placeholder="e.g., Tennis lessons for January 2025") }}
-                        {% if form.description.errors %}
-                            <div class="text-danger small">
-                                {% for error in form.description.errors %}{{ error }}{% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.due_date.label(class="form-label") }}
-                            {{ form.due_date(class="form-control", id="dueDateInput") }}
-                            {% if form.due_date.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.due_date.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Quick Due Date</label>
-                            <div class="btn-group w-100" role="group">
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDueDate(7)">
-                                    7 days
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDueDate(14)">
-                                    14 days
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDueDate(30)">
-                                    30 days
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-receipt"></i> Create Invoice
-                        </button>
-                        <a href="{{ url_for('invoices') }}" class="btn btn-outline-secondary">
-                            Cancel
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Invoice Preview -->
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-eye"></i> Preview</h5>
-            </div>
-            <div class="card-body">
-                <div id="invoicePreview" class="border rounded p-3 bg-light">
-                    <div class="text-center mb-3">
-                        <h6 class="fw-bold text-primary">{{ session['coach_name'] }}</h6>
-                        <small class="text-muted">Tennis Coaching Invoice</small>
-                    </div>
-                    
-                    <hr>
-                    
-                    <div class="row mb-2">
-                        <div class="col-6"><strong>Student:</strong></div>
-                        <div class="col-6" id="previewStudent">-</div>
-                    </div>
-                    
-                    <div class="row mb-2">
-                        <div class="col-6"><strong>Amount:</strong></div>
-                        <div class="col-6" id="previewAmount">$0.00</div>
-                    </div>
-                    
-                    <div class="row mb-2">
-                        <div class="col-6"><strong>Due Date:</strong></div>
-                        <div class="col-6" id="previewDueDate">-</div>
-                    </div>
-                    
-                    <hr>
-                    
-                    <div class="mb-2">
-                        <strong>Description:</strong>
-                        <div id="previewDescription" class="text-muted small">-</div>
-                    </div>
-                </div>
-                
-                <div class="mt-3">
-                    <small class="text-muted">
-                        <i class="bi bi-info-circle"></i> 
-                        This is a preview of how your invoice will look
-                    </small>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Quick Actions -->
-        <div class="card mt-3">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h6>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="fillSampleData()">
-                        <i class="bi bi-magic"></i> Fill Sample Data
-                    </button>
-                    <a href="{{ url_for('add_student') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-person-plus"></i> Add New Student
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-// Set due date to X days from today
-function setDueDate(days) {
-    const today = new Date();
-    const dueDate = new Date(today.getTime() + (days * 24 * 60 * 60 * 1000));
-    const dueDateString = dueDate.toISOString().split('T')[0];
-    document.getElementById('dueDateInput').value = dueDateString;
-    updatePreview();
-}
-
-// Fill sample data for demo purposes
-function fillSampleData() {
-    const studentSelect = document.getElementById('studentSelect');
-    const amountInput = document.getElementById('amountInput');
-    const descriptionInput = document.querySelector('textarea[name="description"]');
-    
-    if (studentSelect.options.length > 1) {
-        studentSelect.selectedIndex = 1;
-    }
-    amountInput.value = '75.00';
-    descriptionInput.value = 'Tennis lessons for the week of ' + new Date().toLocaleDateString();
-    setDueDate(14);
-    updatePreview();
-}
-
-// Update preview as user types
-function updatePreview() {
-    const studentSelect = document.getElementById('studentSelect');
-    const amountInput = document.getElementById('amountInput');
-    const descriptionInput = document.querySelector('textarea[name="description"]');
-    const dueDateInput = document.getElementById('dueDateInput');
-    
-    // Update student
-    const selectedStudent = studentSelect.options[studentSelect.selectedIndex];
-    document.getElementById('previewStudent').textContent = 
-        selectedStudent ? selectedStudent.text : '-';
-    
-    // Update amount
-    const amount = parseFloat(amountInput.value) || 0;
-    document.getElementById('previewAmount').textContent = ' + amount.toFixed(2);
-    
-    // Update description
-    document.getElementById('previewDescription').textContent = 
-        descriptionInput.value || '-';
-    
-    // Update due date
-    if (dueDateInput.value) {
-        const dueDate = new Date(dueDateInput.value);
-        document.getElementById('previewDueDate').textContent = 
-            dueDate.toLocaleDateString();
-    } else {
-        document.getElementById('previewDueDate').textContent = '-';
-    }
-}
-
-// Add event listeners for live preview
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('invoiceForm');
-    const inputs = form.querySelectorAll('input, select, textarea');
-    
-    inputs.forEach(input => {
-        input.addEventListener('input', updatePreview);
-        input.addEventListener('change', updatePreview);
-    });
-    
-    // Set default due date to 14 days from now
-    setDueDate(14);
-    updatePreview();
-});
-
-// Form validation
-document.getElementById('invoiceForm').addEventListener('submit', function(e) {
-    const studentSelect = document.getElementById('studentSelect');
-    const amountInput = document.getElementById('amountInput');
-    const descriptionInput = document.querySelector('textarea[name="description"]');
-    
-    let isValid = true;
-    let errors = [];
-    
-    if (!studentSelect.value) {
-        errors.push('Please select a student');
-        isValid = false;
-    }
-    
-    const amount = parseFloat(amountInput.value);
-    if (!amount || amount <= 0) {
-        errors.push('Please enter a valid amount');
-        isValid = false;
-    }
-    
-    if (!descriptionInput.value.trim()) {
-        errors.push('Please enter a description');
-        isValid = false;
-    }
-    
-    if (!isValid) {
-        e.preventDefault();
-        alert('Please fix the following errors:\n' + errors.join('\n'));
-    }
-});
-</script>
 {% endblock %}

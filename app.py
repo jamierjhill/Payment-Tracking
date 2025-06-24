@@ -603,4 +603,4 @@ def create_tables():
 
 if __name__ == '__main__':
     create_tables()
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port=5000)  # Changed from 5001 to 5000

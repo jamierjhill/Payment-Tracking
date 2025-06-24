@@ -141,41 +141,49 @@
             {% endfor %}
         </div>
         
-        <!-- Summary Stats -->
-        <div class="row mt-4">
-            <div class="col-md-4 mb-3">
-                <div class="card bg-light text-center">
-                    <div class="card-body py-3">
-                        <h6 class="card-title">Total Templates</h6>
-                        <h4 class="text-primary mb-0">{{ templates|length }}</h4>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card bg-light text-center">
-                    <div class="card-body py-3">
-                        <h6 class="card-title">Total Usage</h6>
-                        <h4 class="text-success mb-0">
-                            {{ templates|sum(attribute='invoices')|length if templates else 0 }}
-                        </h4>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card bg-light text-center">
-                    <div class="card-body py-3">
-                        <h6 class="card-title">Average Amount</h6>
-                        <h4 class="text-info mb-0">
-                            {% if templates %}
-                                £{{ "%.0f"|format(templates|sum(attribute='amount')|float / templates|length) }}
-                            {% else %}
-                                £0
-                            {% endif %}
-                        </h4>
-                    </div>
-                </div>
+<!-- Summary Stats - Fixed version -->
+<div class="row mt-4">
+    <div class="col-md-4 mb-3">
+        <div class="card bg-light text-center">
+            <div class="card-body py-3">
+                <h6 class="card-title">Total Templates</h6>
+                <h4 class="text-primary mb-0">{{ templates|length }}</h4>
             </div>
         </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-light text-center">
+            <div class="card-body py-3">
+                <h6 class="card-title">Total Usage</h6>
+                <h4 class="text-success mb-0">
+                    {% set total_usage = 0 %}
+                    {% for template in templates %}
+                        {% set total_usage = total_usage + template.invoices|length %}
+                    {% endfor %}
+                    {{ total_usage }}
+                </h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-light text-center">
+            <div class="card-body py-3">
+                <h6 class="card-title">Average Amount</h6>
+                <h4 class="text-info mb-0">
+                    {% if templates %}
+                        {% set total_amount = 0 %}
+                        {% for template in templates %}
+                            {% set total_amount = total_amount + template.amount %}
+                        {% endfor %}
+                        £{{ "%.0f"|format(total_amount / templates|length) }}
+                    {% else %}
+                        £0
+                    {% endif %}
+                </h4>
+            </div>
+        </div>
+    </div>
+</div>
         
         {% else %}
         <!-- Empty State -->
@@ -227,28 +235,6 @@
     </div>
 </div>
 
-<!-- Tips Card -->
-<div class="card mt-4">
-    <div class="card-body">
-        <h6><i class="bi bi-lightbulb text-warning"></i> Template Tips</h6>
-        <div class="row">
-            <div class="col-md-6">
-                <ul class="mb-0 small">
-                    <li><strong>Be specific:</strong> "1 Hour Tennis Lesson" is better than "Lesson"</li>
-                    <li><strong>Include payment details:</strong> Add bank details or payment instructions</li>
-                    <li><strong>Set realistic due dates:</strong> 14-30 days gives students time to pay</li>
-                </ul>
-            </div>
-            <div class="col-md-6">
-                <ul class="mb-0 small">
-                    <li><strong>Use consistent pricing:</strong> Set standard rates for different services</li>
-                    <li><strong>Update regularly:</strong> Keep templates current with your rates</li>
-                    <li><strong>Create variations:</strong> Different templates for new vs existing students</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</div>
 
 {% endblock %}
 

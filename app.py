@@ -288,6 +288,10 @@ def view_invoice(invoice_id):
 def create_invoice():
     form = InvoiceForm()
     
+    # Get user's templates for template selection
+    templates = InvoiceTemplate.query.filter_by(coach_id=session['coach_id'])\
+        .order_by(InvoiceTemplate.name.asc()).all()
+    
     if form.validate_on_submit():
         invoice = Invoice(
             coach_id=session['coach_id'],
@@ -309,7 +313,7 @@ def create_invoice():
             db.session.rollback()
             flash('Failed to create invoice. Please try again.', 'error')
     
-    return render_template('create_invoice.html', form=form)
+    return render_template('create_invoice.html', form=form, templates=templates)
 
 @app.route('/edit-invoice/<int:invoice_id>', methods=['GET', 'POST'])
 @login_required

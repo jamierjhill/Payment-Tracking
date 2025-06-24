@@ -28,6 +28,89 @@
     </div>
 </div>
 
+<!-- Template Selection Section (only show if not already using a template) -->
+{% if not template and templates %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="form-section">
+                    <h5 class="text-primary mb-3">
+                        <i class="bi bi-lightning"></i> Start with Template
+                    </h5>
+                    <p class="text-muted mb-3">Save time by using one of your existing templates</p>
+                    
+                    <!-- Desktop Template Selection -->
+                    <div class="d-none d-md-block">
+                        <div class="row">
+                            {% for tmpl in templates[:3] %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-light border-2 template-card h-100" style="cursor: pointer;" onclick="useTemplate({{ tmpl.id }})">
+                                    <div class="card-body text-center p-3">
+                                        <div class="mb-2">
+                                            <i class="bi bi-file-text text-primary" style="font-size: 1.5rem;"></i>
+                                        </div>
+                                        <h6 class="card-title mb-2">{{ tmpl.name }}</h6>
+                                        <div class="text-success fw-bold mb-1">£{{ "%.2f"|format(tmpl.amount) }}</div>
+                                        <small class="text-muted d-block mb-3">Due in {{ tmpl.default_due_days }} days</small>
+                                        <button type="button" class="btn btn-outline-primary btn-sm w-100">
+                                            <i class="bi bi-lightning"></i> Use Template
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Mobile Template Selection -->
+                    <div class="d-md-none">
+                        {% for tmpl in templates[:3] %}
+                        <div class="card bg-light border template-card mb-3" style="cursor: pointer;" onclick="useTemplate({{ tmpl.id }})">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-file-text text-primary" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">{{ tmpl.name }}</h6>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="text-success fw-bold">£{{ "%.2f"|format(tmpl.amount) }}</span>
+                                            <span class="text-muted">•</span>
+                                            <small class="text-muted">{{ tmpl.default_due_days }} days</small>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-lightning"></i> Use
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        {% if templates|length > 3 %}
+                        <a href="{{ url_for('templates') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-file-text"></i> View All {{ templates|length }} Templates
+                        </a>
+                        {% else %}
+                        <div></div>
+                        {% endif %}
+                        
+                        <button type="button" class="btn btn-link btn-sm text-muted" onclick="toggleTemplateSection()">
+                            <i class="bi bi-x"></i> Skip templates
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Template Info Banner -->
 {% if template %}
 <div class="alert alert-info mb-4">
@@ -38,13 +121,18 @@
             <br>
             <small>Amount: £{{ "%.2f"|format(template.amount) }} • Due in {{ template.default_due_days }} days</small>
         </div>
+        <div class="ms-auto">
+            <a href="{{ url_for('create_invoice') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x"></i> Clear Template
+            </a>
+        </div>
     </div>
 </div>
 {% endif %}
 
 <div class="row">
     <div class="col-lg-8 mx-auto">
-        <div class="card">
+        <div class="card" id="invoiceFormCard">
             <div class="card-body">
                 <form method="POST" id="invoiceForm" 
                       {% if template %}action="{{ url_for('create_invoice_from_template', template_id=template.id) }}"{% endif %}>
@@ -229,11 +317,73 @@
 
 {% block scripts %}
 <script>
+// Template selection function
+function useTemplate(templateId) {
+    // Add visual feedback
+    const templateCard = event.currentTarget;
+    templateCard.style.transform = 'scale(0.98)';
+    templateCard.style.opacity = '0.8';
+    
+    // Haptic feedback
+    if ('vibrate' in navigator) {
+        navigator.vibrate(50);
+    }
+    
+    // Redirect to template usage
+    setTimeout(() => {
+        window.location.href = '/use-template/' + templateId;
+    }, 150);
+}
+
+// Toggle template selection section
+function toggleTemplateSection() {
+    const templateSection = document.querySelector('.card:first-child');
+    const formCard = document.getElementById('invoiceFormCard');
+    
+    if (templateSection) {
+        templateSection.style.transition = 'all 0.3s ease';
+        templateSection.style.opacity = '0';
+        templateSection.style.transform = 'translateY(-20px)';
+        
+        setTimeout(() => {
+            templateSection.style.display = 'none';
+            formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('invoiceForm');
     const progressBar = document.getElementById('formProgress');
     const previewCard = document.getElementById('previewCard');
     const previewContent = document.getElementById('previewContent');
+    
+    // Add hover effects to template cards
+    document.querySelectorAll('.template-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-1px)';
+            this.style.transition = 'all 0.2s ease';
+            this.classList.add('border-primary');
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.classList.remove('border-primary');
+        });
+        
+        // Touch feedback for mobile
+        card.addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.98)';
+            this.style.opacity = '0.9';
+        });
+        
+        card.addEventListener('touchend', function() {
+            setTimeout(() => {
+                this.style.transform = '';
+                this.style.opacity = '';
+            }, 100);
+        });
+    });
     
     // Form progress tracking
     function updateProgress() {

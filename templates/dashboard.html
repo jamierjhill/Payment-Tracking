@@ -9,51 +9,52 @@
     </div>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body text-center">
-                <i class="bi bi-receipt display-4"></i>
-                <h3>{{ total_invoices }}</h3>
-                <p>Total Invoices</p>
+<!-- Stats Cards - Mobile Optimized -->
+<div class="row mb-4 g-3">
+    <div class="col-6 col-lg-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <i class="bi bi-receipt display-6 mb-2"></i>
+                <h3 class="mb-1">{{ total_invoices }}</h3>
+                <p class="mb-0 small">Total Invoices</p>
             </div>
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body text-center">
-                <i class="bi bi-clock display-4"></i>
-                <h3>{{ pending_invoices }}</h3>
-                <p>Pending</p>
+    <div class="col-6 col-lg-3">
+        <div class="card bg-warning text-white h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <i class="bi bi-clock display-6 mb-2"></i>
+                <h3 class="mb-1">{{ pending_invoices }}</h3>
+                <p class="mb-0 small">Pending</p>
             </div>
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body text-center">
-                <i class="bi bi-exclamation-triangle display-4"></i>
-                <h3>{{ overdue_count }}</h3>
-                <p>Overdue</p>
+    <div class="col-6 col-lg-3">
+        <div class="card bg-danger text-white h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <i class="bi bi-exclamation-triangle display-6 mb-2"></i>
+                <h3 class="mb-1">{{ overdue_count }}</h3>
+                <p class="mb-0 small">Overdue</p>
             </div>
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body text-center">
-                <i class="bi bi-currency-pound display-4"></i>
-                <h3>£{{ "%.2f"|format(total_pending_amount) }}</h3>
-                <p>Pending Amount</p>
+    <div class="col-6 col-lg-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <i class="bi bi-currency-pound display-6 mb-2"></i>
+                <h4 class="mb-1">£{{ "%.0f"|format(total_pending_amount) }}</h4>
+                <p class="mb-0 small">Pending Amount</p>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-lg-8">
-        <div class="card">
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5><i class="bi bi-receipt"></i> Recent Invoices</h5>
@@ -61,39 +62,64 @@
                 </div>
                 
                 {% if recent_invoices %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Invoice #</th>
-                                <th>Student</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for invoice in recent_invoices %}
-                            <tr>
-                                <td>{{ invoice.invoice_number }}</td>
-                                <td>{{ invoice.student_name }}</td>
-                                <td>£{{ "%.2f"|format(invoice.amount) }}</td>
-                                <td>
-                                    {% if invoice.status == 'paid' %}
-                                        <span class="badge bg-success">Paid</span>
-                                    {% elif invoice.status == 'overdue' %}
-                                        <span class="badge bg-danger">Overdue</span>
-                                    {% else %}
-                                        <span class="badge bg-warning">Pending</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                
+                <!-- Desktop Table View -->
+                <div class="d-none d-md-block">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Student</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in recent_invoices %}
+                                <tr onclick="window.location='{{ url_for('view_invoice', invoice_id=invoice.id) }}'" style="cursor: pointer;">
+                                    <td><strong>{{ invoice.invoice_number }}</strong></td>
+                                    <td>{{ invoice.student_name }}</td>
+                                    <td><strong>£{{ "%.2f"|format(invoice.amount) }}</strong></td>
+                                    <td>
+                                        {% if invoice.status == 'paid' %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% elif invoice.status == 'overdue' %}
+                                            <span class="badge bg-danger">Overdue</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+                
+                <!-- Mobile List View -->
+                <div class="d-md-none">
+                    {% for invoice in recent_invoices %}
+                    <div class="border rounded p-3 mb-2" onclick="window.location='{{ url_for('view_invoice', invoice_id=invoice.id) }}'" style="cursor: pointer;">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h6 class="mb-0"><strong>{{ invoice.invoice_number }}</strong></h6>
+                            {% if invoice.status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elif invoice.status == 'overdue' %}
+                                <span class="badge bg-danger">Overdue</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-muted small">{{ invoice.student_name }}</div>
+                        <div class="text-success fw-bold">£{{ "%.2f"|format(invoice.amount) }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
                 {% else %}
                 <div class="text-center py-4">
-                    <i class="bi bi-receipt display-1 text-muted"></i>
+                    <i class="bi bi-receipt display-4 text-muted"></i>
                     <h5 class="text-muted mt-3">No invoices yet</h5>
                     <p class="text-muted">Create your first invoice to get started tracking payments</p>
                     <a href="{{ url_for('create_invoice') }}" class="btn btn-primary">
@@ -106,7 +132,7 @@
     </div>
     
     <div class="col-lg-4">
-        <div class="card">
+        <div class="card h-100">
             <div class="card-body">
                 <h5><i class="bi bi-lightning"></i> Quick Actions</h5>
                 <div class="d-grid gap-2">
@@ -128,7 +154,7 @@
                     <h6 class="fw-bold">📊 Quick Stats</h6>
                     <small class="text-muted">
                         {% if pending_invoices > 0 %}
-                        <div>• {{ pending_invoices }} invoice{{ 's' if pending_invoices != 1 else '' }} awaiting payment</div>
+                        <div class="mb-1">• {{ pending_invoices }} invoice{{ 's' if pending_invoices != 1 else '' }} awaiting payment</div>
                         {% endif %}
                         {% if overdue_count > 0 %}
                         <div class="text-danger">• {{ overdue_count }} overdue invoice{{ 's' if overdue_count != 1 else '' }}</div>
@@ -136,8 +162,100 @@
                     </small>
                 </div>
                 {% endif %}
+                
+                <!-- Mobile-specific quick tips -->
+                <div class="mt-4 d-lg-none">
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="bi bi-lightbulb"></i> <strong>Tip:</strong> 
+                            Tap any invoice to view details, or swipe left on mobile for quick actions.
+                        </small>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Mobile FAB (Floating Action Button) -->
+<div class="d-lg-none">
+    <a href="{{ url_for('create_invoice') }}" class="btn btn-primary rounded-circle position-fixed" 
+       style="bottom: 20px; right: 20px; width: 60px; height: 60px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000;"
+       title="Create New Invoice">
+        <i class="bi bi-plus-lg" style="font-size: 1.5rem;"></i>
+    </a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add touch feedback for clickable rows
+    const clickableRows = document.querySelectorAll('[onclick]');
+    clickableRows.forEach(row => {
+        row.addEventListener('touchstart', function() {
+            this.style.backgroundColor = 'rgba(0,0,0,0.05)';
+        });
+        
+        row.addEventListener('touchend', function() {
+            setTimeout(() => {
+                this.style.backgroundColor = '';
+            }, 150);
+        });
+    });
+    
+    // Add subtle animation to stats cards
+    const statsCards = document.querySelectorAll('.row .card');
+    statsCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            card.style.transition = 'all 0.3s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+    
+    // Swipe gestures for mobile invoice items (simple implementation)
+    let startX, startY, currentElement;
+    
+    document.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        currentElement = e.target.closest('.border.rounded');
+    });
+    
+    document.addEventListener('touchmove', function(e) {
+        if (!currentElement) return;
+        
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        
+        const diffX = currentX - startX;
+        const diffY = currentY - startY;
+        
+        // Only trigger if horizontal swipe is more significant than vertical
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30) {
+            e.preventDefault();
+            currentElement.style.transform = `translateX(${diffX}px)`;
+            currentElement.style.opacity = 1 - Math.abs(diffX) / 200;
+        }
+    });
+    
+    document.addEventListener('touchend', function(e) {
+        if (!currentElement) return;
+        
+        currentElement.style.transition = 'all 0.3s ease';
+        currentElement.style.transform = '';
+        currentElement.style.opacity = '';
+        
+        setTimeout(() => {
+            currentElement.style.transition = '';
+        }, 300);
+        
+        currentElement = null;
+    });
+});
+</script>
 {% endblock %}

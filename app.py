@@ -14,12 +14,25 @@ import sqlalchemy as sa
 # Initialize Flask app
 app = Flask(__name__)
 
+# Environment detection
+is_development = os.environ.get('FLASK_ENV') == 'development'
+
 # Security Configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# Set security configs based on environment
+if is_development:
+    # Development settings - less secure for local testing
+    app.config['SESSION_COOKIE_SECURE'] = False
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+else:
+    # Production settings - secure
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 
 # Database Configuration
@@ -401,17 +414,22 @@ def internal_error(error):
                          title='Server Error',
                          message='An internal server error occurred.'), 500
 
-# Security headers
+# Security headers - conditional based on environment
 @app.after_request
 def after_request(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
+    # Only set HTTPS headers in production
+    if not is_development:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
     response.headers['Content-Security-Policy'] = ("default-src 'self'; "
-                                                   "script-src 'self' 'unsafe-inline'; "
-                                                   "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-                                                   "font-src 'self' https://cdn.jsdelivr.net")
+                                                   "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                                                   "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+                                                   "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; "
+                                                   "img-src 'self' data:;")
     return response
 
 # Database initialization
@@ -421,4 +439,4 @@ def create_tables():
 
 if __name__ == '__main__':
     create_tables()
-    app.run(debug=os.environ.get('FLASK_ENV') == 'development')
+    app.run(debug=True, host='0.0.0.0', port=5001)  # Changed to port 5001

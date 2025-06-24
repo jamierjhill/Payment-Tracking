@@ -2,7 +2,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm, CSRFProtect
-from wtforms import StringField, DecimalField, DateField, SelectField, TextAreaField, EmailField, PasswordField
+from wtforms import StringField, DecimalField, DateField, SelectField, TextAreaField, EmailField, PasswordField, IntegerField
 from wtforms.validators import DataRequired, Email, Length, NumberRange
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -56,6 +56,7 @@ class Coach(db.Model):
     
     # Relationships
     invoices = db.relationship('Invoice', backref='coach', lazy=True, cascade='all, delete-orphan')
+    templates = db.relationship('InvoiceTemplate', backref='coach', lazy=True, cascade='all, delete-orphan')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -63,9 +64,23 @@ class Coach(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+class InvoiceTemplate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    coach_id = db.Column(db.Integer, db.ForeignKey('coach.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    amount = db.Column(sa.Numeric(10, 2), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    default_due_days = db.Column(db.Integer, nullable=False, default=14)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship to track which invoices were created from this template
+    invoices = db.relationship('Invoice', backref='template', lazy=True)
+
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     coach_id = db.Column(db.Integer, db.ForeignKey('coach.id'), nullable=False)
+    template_id = db.Column(db.Integer, db.ForeignKey('invoice_template.id'), nullable=True)
     invoice_number = db.Column(db.String(50), unique=True, nullable=False)
     student_name = db.Column(db.String(100), nullable=False)
     student_email = db.Column(db.String(120))
@@ -114,6 +129,12 @@ class InvoiceForm(FlaskForm):
     amount = DecimalField('Amount (£)', validators=[DataRequired(), NumberRange(min=0.01, max=9999.99)])
     description = TextAreaField('Description', validators=[DataRequired(), Length(max=500)])
     due_date = DateField('Due Date', validators=[DataRequired()])
+
+class TemplateForm(FlaskForm):
+    name = StringField('Template Name', validators=[DataRequired(), Length(min=2, max=100)])
+    amount = DecimalField('Amount (£)', validators=[DataRequired(), NumberRange(min=0.01, max=9999.99)])
+    description = TextAreaField('Description', validators=[DataRequired(), Length(max=1000)])
+    default_due_days = IntegerField('Default Due Days', validators=[DataRequired(), NumberRange(min=1, max=365)])
 
 # Simple form for CSRF protection on POST requests
 class CSRFForm(FlaskForm):
@@ -400,6 +421,149 @@ def delete_invoice(invoice_id):
     
     return redirect(url_for('invoices'))
 
+# Templates Routes
+@app.route('/templates')
+@login_required
+def templates():
+    coach_id = session['coach_id']
+    templates = InvoiceTemplate.query.filter_by(coach_id=coach_id)\
+        .order_by(InvoiceTemplate.name.asc()).all()
+    
+    csrf_form = CSRFForm()
+    
+    return render_template('templates.html', templates=templates, csrf_form=csrf_form)
+
+@app.route('/create-template', methods=['GET', 'POST'])
+@login_required
+def create_template():
+    form = TemplateForm()
+    
+    if form.validate_on_submit():
+        template = InvoiceTemplate(
+            coach_id=session['coach_id'],
+            name=form.name.data.strip(),
+            amount=form.amount.data,
+            description=form.description.data.strip(),
+            default_due_days=form.default_due_days.data
+        )
+        
+        try:
+            db.session.add(template)
+            db.session.commit()
+            flash('Template created successfully!', 'success')
+            return redirect(url_for('templates'))
+        except Exception:
+            db.session.rollback()
+            flash('Failed to create template. Please try again.', 'error')
+    
+    return render_template('create_template.html', form=form)
+
+@app.route('/edit-template/<int:template_id>', methods=['GET', 'POST'])
+@login_required
+def edit_template(template_id):
+    template = InvoiceTemplate.query.filter_by(
+        id=template_id, 
+        coach_id=session['coach_id']
+    ).first_or_404()
+    
+    form = TemplateForm(obj=template)
+    
+    if form.validate_on_submit():
+        template.name = form.name.data.strip()
+        template.amount = form.amount.data
+        template.description = form.description.data.strip()
+        template.default_due_days = form.default_due_days.data
+        template.updated_at = datetime.utcnow()
+        
+        try:
+            db.session.commit()
+            flash('Template updated successfully!', 'success')
+            return redirect(url_for('templates'))
+        except Exception:
+            db.session.rollback()
+            flash('Failed to update template. Please try again.', 'error')
+    
+    return render_template('edit_template.html', form=form, template=template)
+
+@app.route('/use-template/<int:template_id>')
+@login_required
+def use_template(template_id):
+    template = InvoiceTemplate.query.filter_by(
+        id=template_id, 
+        coach_id=session['coach_id']
+    ).first_or_404()
+    
+    # Create a form with the template data
+    form = InvoiceForm()
+    form.amount.data = template.amount
+    form.description.data = template.description
+    # Set due date based on template default
+    form.due_date.data = datetime.now().date() + timedelta(days=template.default_due_days)
+    
+    flash(f'Creating invoice from template: {template.name}', 'info')
+    return render_template('create_invoice.html', form=form, template=template)
+
+@app.route('/create-invoice-from-template/<int:template_id>', methods=['POST'])
+@login_required
+def create_invoice_from_template(template_id):
+    template = InvoiceTemplate.query.filter_by(
+        id=template_id, 
+        coach_id=session['coach_id']
+    ).first_or_404()
+    
+    form = InvoiceForm()
+    
+    if form.validate_on_submit():
+        invoice = Invoice(
+            coach_id=session['coach_id'],
+            template_id=template.id,
+            student_name=form.student_name.data.strip(),
+            student_email=form.student_email.data.lower() if form.student_email.data else None,
+            amount=form.amount.data,
+            description=form.description.data.strip(),
+            due_date=form.due_date.data
+        )
+        
+        invoice.invoice_number = invoice.generate_invoice_number(session['coach_id'])
+        
+        try:
+            db.session.add(invoice)
+            db.session.commit()
+            flash(f'Invoice created from template "{template.name}"!', 'success')
+            return redirect(url_for('view_invoice', invoice_id=invoice.id))
+        except Exception:
+            db.session.rollback()
+            flash('Failed to create invoice. Please try again.', 'error')
+    
+    # If validation fails, redirect back to the template usage page
+    return redirect(url_for('use_template', template_id=template_id))
+
+@app.route('/delete-template/<int:template_id>', methods=['POST'])
+@login_required
+def delete_template(template_id):
+    # Validate CSRF token
+    csrf_form = CSRFForm()
+    if not csrf_form.validate_on_submit():
+        flash('Security token expired. Please try again.', 'error')
+        return redirect(url_for('templates'))
+    
+    template = InvoiceTemplate.query.filter_by(
+        id=template_id, 
+        coach_id=session['coach_id']
+    ).first_or_404()
+    
+    template_name = template.name
+    
+    try:
+        db.session.delete(template)
+        db.session.commit()
+        flash(f'Template "{template_name}" has been deleted.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('Failed to delete template. Please try again.', 'error')
+    
+    return redirect(url_for('templates'))
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -439,4 +603,4 @@ def create_tables():
 
 if __name__ == '__main__':
     create_tables()
-    app.run(debug=True, host='0.0.0.0', port=5001)  # Changed to port 5001
+    app.run(debug=True, host='0.0.0.0', port=5001)
